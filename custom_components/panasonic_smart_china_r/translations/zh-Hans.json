@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "登录松下账号",
+        "description": "请输入您的松下智能家电 App (中国版) 账号密码。\n首次登录会自动保存会话，添加后续设备时无需再次输入。",
+        "data": {
+          "username": "手机号",
+          "password": "密码"
+        }
+      },
+      "device": {
+        "title": "选择设备",
+        "description": "成功获取设备列表！请选择要添加的设备。\n前缀 [空调] / [新风] 会标注设备类型。",
+        "data": {
+          "deviceId": "选择设备"
+        }
+      },
+      "ac_config": {
+        "title": "空调额外配置",
+        "description": "空调设备需要额外指定线控器型号与关联的室温传感器。",
+        "data": {
+          "controller_model": "线控器/遥控器型号",
+          "sensor_entity_id": "关联室温传感器"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新认证松下账号",
+        "description": "松下云端的会话已过期（通常是因为您在手机 App 上重新登录，导致 SSID 被踢下线）。请重新输入密码以恢复连接。",
+        "data": {
+          "username": "手机号",
+          "password": "密码"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "登录失败：请检查账号密码或网络连接",
+      "no_devices_found": "未找到设备：请确保账号下已绑定设备",
+      "token_generation_failed": "Token 生成失败：设备 ID 格式不正确",
+      "all_devices_configured": "所有设备均已添加，无需重复配置",
+      "unsupported_device": "暂不支持该类设备"
+    },
+    "abort": {
+      "already_configured": "该设备已配置",
+      "reauth_successful": "重新认证成功",
+      "all_devices_configured": "所有设备均已添加",
+      "no_devices_found": "未找到设备"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "设备选项",
+        "description": "调整此设备的云端轮询间隔（秒）。最小 60，最大 900。降低频率可避免被云端限流。",
+        "data": {
+          "update_interval": "轮询间隔（秒）"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "panasonic_ac": {
+        "name": "松下空调"
+      }
+    }
+  }
+}

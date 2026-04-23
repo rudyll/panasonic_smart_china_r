@@ -1,0 +1,11 @@
+{
+  "domain": "panasonic_smart_china_r",
+  "name": "Panasonic Smart China R",
+  "documentation": "https://github.com/rudyll/panasonic_smart_china_r",
+  "dependencies": [],
+  "codeowners": ["@rudyl"],
+  "requirements": [],
+  "version": "2.0.0",
+  "iot_class": "cloud_polling",
+  "config_flow": true
+}
