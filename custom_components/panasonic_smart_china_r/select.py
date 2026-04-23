@@ -33,6 +33,13 @@ RUN_MODE_GET_MAP: dict[int, str] = {
     51: "内循环",
     52: "混风",
     53: "自动ECO",
+    # 旧固件 / 初始状态可能返回 0-5（与 48-53 一一对应）
+    0: "热交换",
+    1: "静音",
+    2: "普通换气",
+    3: "内循环",
+    4: "混风",
+    5: "自动ECO",
 }
 
 RUN_MODE_SET_MAP: dict[str, int] = {
@@ -156,6 +163,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
         self._req_id += 1
         set_resp = await self._post_with_retry(URL_SET, {"id": self._req_id, "params": params}, headers, entry)
         _LOGGER.debug("%s SET response: %s", self._attr_unique_id, set_resp)
+        await asyncio.sleep(5)
         await self.coordinator.async_request_refresh()
 
     async def _post_with_retry(self, url, payload, headers, entry):

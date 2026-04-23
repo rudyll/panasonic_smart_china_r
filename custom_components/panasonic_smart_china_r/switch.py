@@ -61,6 +61,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
         self._req_id += 1
         set_resp = await self._request(URL_SET, {"id": self._req_id, "params": params}, headers, entry)
         _LOGGER.debug("%s SET response: %s", self._attr_unique_id, set_resp)
+        await asyncio.sleep(5)
         await self.coordinator.async_request_refresh()
 
     async def _request(self, url, payload, headers, entry):

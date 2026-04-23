@@ -19,7 +19,7 @@ CONF_UPDATE_INTERVAL = "update_interval"
 
 # 轮询间隔（秒）：默认 60，允许 60-900 之间调整
 DEFAULT_UPDATE_INTERVAL = 60
-MIN_UPDATE_INTERVAL = 60
+MIN_UPDATE_INTERVAL = 5
 MAX_UPDATE_INTERVAL = 900
 
 # 云端 SSID 过期/认证错误时返回的 code（可能在顶层 errorCode，或嵌套 error.code）
