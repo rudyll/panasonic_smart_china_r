@@ -15,6 +15,7 @@ CONF_SSID = "SSID"
 CONF_SENSOR_ID = "sensor_entity_id"
 CONF_CONTROLLER_MODEL = "controller_model"
 CONF_DEVICE_KIND = "device_kind"
+CONF_DEV_SUB_TYPE_ID = "devSubTypeId"
 CONF_UPDATE_INTERVAL = "update_interval"
 
 # 轮询间隔（秒）：默认 60，允许 60-900 之间调整
@@ -32,6 +33,26 @@ CATEGORY_FRESH_AIR = "0800"
 
 DEVICE_KIND_AC = "ac"
 DEVICE_KIND_FRESH_AIR = "fresh_air"
+
+
+_BASE_URL = "https://app.psmartcloud.com/App/"
+
+# devSubTypeId 前缀 → (GET端点完整URL, SET端点完整URL)
+_DCERV_ENDPOINT_MAP: dict[str, tuple[str, str]] = {
+    "DCERV":    (_BASE_URL + "ADevGetStatusDCERV",    _BASE_URL + "ADevSetStatusDCERV"),
+    "NEWDCERV": (_BASE_URL + "ADevGetStatusNewDCERV", _BASE_URL + "ADevSetStatusNewDCERV"),
+    "MIDERV":   (_BASE_URL + "ADevGetStatusMidERV",   _BASE_URL + "ADevSetStatusMidERV"),
+    "SMALLERV": (_BASE_URL + "ADevGetStatusSmallERV", _BASE_URL + "ADevSetStatusSmallERV"),
+}
+
+
+def get_dcerv_endpoints(dev_sub_type_id: str) -> tuple[str, str]:
+    """按 devSubTypeId 返回 (GET URL, SET URL)，未识别时 fallback 到 DCERV。"""
+    upper = (dev_sub_type_id or "").upper().replace("-", "")
+    for prefix, urls in _DCERV_ENDPOINT_MAP.items():
+        if upper.startswith(prefix):
+            return urls
+    return _DCERV_ENDPOINT_MAP["DCERV"]
 
 
 def detect_device_kind(device_id: str) -> str | None:

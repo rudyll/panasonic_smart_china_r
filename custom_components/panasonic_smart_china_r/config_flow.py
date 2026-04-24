@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 from .api import authenticate, generate_device_token
 from .const import (
     CONF_CONTROLLER_MODEL,
+    CONF_DEV_SUB_TYPE_ID,
     CONF_DEVICE_ID,
     CONF_DEVICE_KIND,
     CONF_SENSOR_ID,
@@ -230,6 +231,7 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         token = generate_device_token(self._selected_dev_id) or ""
         dev_info = self._devices.get(self._selected_dev_id) or {}
         dev_name = dev_info.get("deviceName", "Panasonic Fresh Air")
+        dev_sub_type_id = dev_info.get("params", {}).get("devSubTypeId", "")
         return self.async_create_entry(
             title=dev_name,
             data={
@@ -240,6 +242,7 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_DEVICE_ID: self._selected_dev_id,
                 CONF_TOKEN: token,
                 CONF_DEVICE_KIND: DEVICE_KIND_FRESH_AIR,
+                CONF_DEV_SUB_TYPE_ID: dev_sub_type_id,
                 "familyId": self._login_data.get("familyId"),
                 "realFamilyId": self._login_data.get("realFamilyId"),
             },
