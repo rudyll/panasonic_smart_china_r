@@ -134,7 +134,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return self.data or {}
 
         if self.erv_profile is None and status_all:
-            from .devices.dcerv import detect_erv_profile
+            from .devices.erv import detect_erv_profile
             self.erv_profile = detect_erv_profile(status_all)
             _LOGGER.info("%s detected ERV profile: %s", self._device_id, self.erv_profile)
 

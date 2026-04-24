@@ -112,6 +112,14 @@ def detect_erv_profile(status_data: dict) -> str:
     """根据 GET 响应字段特征识别 ERV 机型。"""
     if "filSet" in status_data or "oaFilExPM" in status_data:
         return "SMALLERV"
+    # runM 48-53 是 DCERV 独有范围，优先判断，避免被 autoSen/coldF 误判为 MIDERV
+    run_m = status_data.get("runM")
+    if run_m is not None:
+        try:
+            if 48 <= int(run_m) <= 53:
+                return "DCERV"
+        except (TypeError, ValueError):
+            pass
     if "autoSen" in status_data or "coldF" in status_data:
         return "MIDERV"
     return "DCERV"
