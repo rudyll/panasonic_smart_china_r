@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import relogin_entry, response_looks_bad
 from .const import (
     CONF_DEVICE_ID,
+    CONF_DEV_SUB_TYPE_ID,
     CONF_SSID,
     CONF_UPDATE_INTERVAL,
     CONF_USR_ID,
@@ -44,7 +45,19 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         self._usr_id = entry.data[CONF_USR_ID]
         self._ssid = entry.data[CONF_SSID]
         self._device_id = entry.data[CONF_DEVICE_ID]
-        self.erv_profile: str | None = None
+        self.erv_profile: str = self._profile_from_sub_type(
+            entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
+        )
+        _LOGGER.info("%s ERV profile (from devSubTypeId): %s", self._device_id, self.erv_profile)
+
+    @staticmethod
+    def _profile_from_sub_type(dev_sub_type_id: str) -> str:
+        upper = (dev_sub_type_id or "").upper().replace("-", "")
+        if upper.startswith("SMALLERV"):
+            return "SMALLERV"
+        if upper.startswith("MIDERV"):
+            return "MIDERV"
+        return "DCERV"
 
     def _build_payload(self):
         session_cache = (self.hass.data.get(DOMAIN) or {}).get("session") or {}
@@ -132,10 +145,5 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         if status_all is None:
             _LOGGER.debug("Device %s not in devList", self._device_id)
             return self.data or {}
-
-        if self.erv_profile is None and status_all:
-            from .devices.erv import detect_erv_profile
-            self.erv_profile = detect_erv_profile(status_all)
-            _LOGGER.info("%s detected ERV profile: %s", self._device_id, self.erv_profile)
 
         return status_all
