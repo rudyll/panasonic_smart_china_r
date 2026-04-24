@@ -44,6 +44,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         self._usr_id = entry.data[CONF_USR_ID]
         self._ssid = entry.data[CONF_SSID]
         self._device_id = entry.data[CONF_DEVICE_ID]
+        self.erv_profile: str | None = None
 
     def _build_payload(self):
         session_cache = (self.hass.data.get(DOMAIN) or {}).get("session") or {}
@@ -122,9 +123,19 @@ class FreshAirCoordinator(DataUpdateCoordinator):
                     f"Still bad after re-login: errorCode={data.get('errorCode') if isinstance(data, dict) else None}"
                 )
 
+        status_all = None
         for dev in data.get("results", {}).get("devList", []):
             if dev.get("deviceId") == self._device_id:
-                return dev.get("params", {}).get("statusAll") or {}
+                status_all = dev.get("params", {}).get("statusAll") or {}
+                break
 
-        _LOGGER.debug("Device %s not in devList", self._device_id)
-        return self.data or {}
+        if status_all is None:
+            _LOGGER.debug("Device %s not in devList", self._device_id)
+            return self.data or {}
+
+        if self.erv_profile is None and status_all:
+            from .devices.dcerv import detect_erv_profile
+            self.erv_profile = detect_erv_profile(status_all)
+            _LOGGER.info("%s detected ERV profile: %s", self._device_id, self.erv_profile)
+
+        return status_all

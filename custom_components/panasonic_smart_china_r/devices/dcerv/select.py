@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...api import generate_device_token, relogin_entry
 from ...const import CONF_DEVICE_ID, CONF_DEV_SUB_TYPE_ID, CONF_SSID, CONF_USR_ID, DOMAIN, get_dcerv_endpoints
-from . import AIR_VOLUME_MAP, RUN_MODE_GET_MAP, RUN_MODE_SET_MAP, build_dcerv_payload
+from . import ERV_PROFILES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,24 +22,26 @@ _MAX_RETRIES = 3
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([
-        FreshAirModeSelect(coordinator, entry),
-        FreshAirVolumeSelect(coordinator, entry),
-    ])
+    profile = ERV_PROFILES.get(coordinator.erv_profile or "DCERV", ERV_PROFILES["DCERV"])
+    entities = [FreshAirVolumeSelect(coordinator, entry, profile)]
+    if profile["has_run_mode"]:
+        entities.append(FreshAirModeSelect(coordinator, entry, profile))
+    async_add_entities(entities)
 
 
 class _FreshAirSelect(CoordinatorEntity, SelectEntity):
     _status_key: str = ""
-    _get_map: dict[int, str] = {}
     _set_map: dict[str, int] | None = None
     _set_field: str = ""
     _unique_suffix: str = ""
     _name_suffix: str = ""
     _req_id: int = 0
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator, entry, profile: dict):
         super().__init__(coordinator)
         self._entry = entry
+        self._get_map: dict[int, str] = {}
+        self._payload_builder = profile["payload_builder"]
         device_id = entry.data[CONF_DEVICE_ID]
         self._attr_options = list(dict.fromkeys(self._get_map.values()))  # deduplicate, preserve order
         self._attr_name = f"{entry.title} {self._name_suffix}"
@@ -90,7 +92,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
             "Cookie": f"SSID={ssid}",
         }
 
-        params = build_dcerv_payload(device_id, token, usr_id, **{self._set_field: set_value})
+        params = self._payload_builder(device_id, token, usr_id, **{self._set_field: set_value})
         _LOGGER.debug("%s SET %s=%s (option=%r)", self._attr_unique_id, self._set_field, set_value, option)
         self._req_id += 1
         set_resp = await self._post_with_retry(url_set, {"id": self._req_id, "params": params}, headers, entry)
@@ -132,18 +134,26 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
 
 class FreshAirModeSelect(_FreshAirSelect):
     _status_key = "runM"
-    _get_map = RUN_MODE_GET_MAP
-    _set_map = RUN_MODE_SET_MAP
     _set_field = "runM"
     _unique_suffix = "run_mode"
     _name_suffix = "运行模式"
     _attr_icon = "mdi:fan-auto"
 
+    def __init__(self, coordinator, entry, profile: dict):
+        super().__init__(coordinator, entry, profile)
+        self._get_map = profile["run_mode_get_map"]
+        self._set_map = profile["run_mode_set_map"]
+        self._attr_options = list(dict.fromkeys(self._get_map.values()))
+
 
 class FreshAirVolumeSelect(_FreshAirSelect):
     _status_key = "airVo"
-    _get_map = AIR_VOLUME_MAP
     _set_field = "airVo"
     _unique_suffix = "air_volume"
     _name_suffix = "风量"
     _attr_icon = "mdi:weather-windy"
+
+    def __init__(self, coordinator, entry, profile: dict):
+        super().__init__(coordinator, entry, profile)
+        self._get_map = profile["air_volume_map"]
+        self._attr_options = list(dict.fromkeys(self._get_map.values()))

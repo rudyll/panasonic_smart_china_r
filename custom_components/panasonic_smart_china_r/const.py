@@ -29,7 +29,7 @@ AUTH_EXPIRED_ERROR_CODES = {"3003", "3004", "4102"}
 
 # deviceId 中间段的 category 码
 CATEGORY_AC = "0900"
-CATEGORY_FRESH_AIR = "0800"
+CATEGORY_FRESH_AIR = {"0800", "0850"}  # 0850 = SmallERV 小型新风
 
 DEVICE_KIND_AC = "ac"
 DEVICE_KIND_FRESH_AIR = "fresh_air"
@@ -60,10 +60,12 @@ def detect_device_kind(device_id: str) -> str | None:
     parts = device_id.split("_")
     if len(parts) < 2:
         return None
-    return {
-        CATEGORY_AC: DEVICE_KIND_AC,
-        CATEGORY_FRESH_AIR: DEVICE_KIND_FRESH_AIR,
-    }.get(parts[1])
+    cat = parts[1]
+    if cat == CATEGORY_AC:
+        return DEVICE_KIND_AC
+    if cat in CATEGORY_FRESH_AIR:
+        return DEVICE_KIND_FRESH_AIR
+    return None
 
 # 自定义风速常量
 FAN_MIN = "Min"    # 最低

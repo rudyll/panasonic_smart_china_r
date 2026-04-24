@@ -31,6 +31,26 @@ AIR_VOLUME_MAP: dict[int, str] = {
     1: "强",
 }
 
+# MidERV 运行模式（来自参考仓库实测，值域 0/2/3/4）
+MIDERV_RUN_MODE_GET_MAP: dict[int, str] = {
+    0: "热交换",
+    2: "内循环",
+    3: "睡眠",
+    4: "自动ECO",
+}
+
+MIDERV_RUN_MODE_SET_MAP: dict[str, int] = {
+    "热交换": 0,
+    "内循环": 2,
+    "睡眠": 3,
+    "自动ECO": 4,
+}
+
+MIDERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 2: "中", 3: "高"}
+
+# SmallERV 风量（值 1/3，跳过 2）
+SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 3: "高"}
+
 
 def build_dcerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
     """构造 DCERV-03 完整 SET payload（来自 App 源码 DevStatusSetBean）。
@@ -55,3 +75,68 @@ def build_dcerv_payload(device_id: str, token: str, usr_id: str, **overrides) ->
         p[f"tWeek{i}"] = 255
     p.update(overrides)
     return p
+
+
+def build_miderv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
+    """构造 MidERV 完整 SET payload（字段来自参考仓库 SAFE_CONTROL_KEYS）。"""
+    p: dict = {
+        "deviceId": device_id, "token": token, "usrId": usr_id,
+        "runSta": 255, "runM": 255, "airVo": 255,
+        "preM": 255, "autoSen": 255, "coldF": 255,
+        "saSet": 255, "HeatM": 255, "holM": 255,
+        "oaFilCl": 255, "raFilCl": 255, "raFilEx": 255,
+        "saFilCl": 255, "oaFilEx": 255, "saFilEx": 255,
+        # MidERV 定时器：on/off 各一组，不是 DCERV 的 1-6 循环
+        "tOnH": 127, "tOnMin": 127, "tOnSta": 255,
+        "tOffH": 127, "tOffMin": 127, "tOffSta": 255,
+    }
+    p.update(overrides)
+    return p
+
+
+def build_smallerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
+    """构造 SmallERV 完整 SET payload。"""
+    p: dict = {
+        "deviceId": device_id, "token": token, "usrId": usr_id,
+        "runSta": 255, "airVo": 255,
+        "filSet": 255, "oaFilExPM": 255, "saFilEx": 255,
+        "tOnH": 127, "tOnMin": 127, "tOnSta": 255,
+        "tOffH": 127, "tOffMin": 127, "tOffSta": 255,
+        "holM": 255,
+    }
+    p.update(overrides)
+    return p
+
+
+def detect_erv_profile(status_data: dict) -> str:
+    """根据 GET 响应字段特征识别 ERV 机型。"""
+    if "filSet" in status_data or "oaFilExPM" in status_data:
+        return "SMALLERV"
+    if "autoSen" in status_data or "coldF" in status_data:
+        return "MIDERV"
+    return "DCERV"
+
+
+ERV_PROFILES: dict[str, dict] = {
+    "DCERV": {
+        "run_mode_get_map": RUN_MODE_GET_MAP,
+        "run_mode_set_map": RUN_MODE_SET_MAP,
+        "air_volume_map":   AIR_VOLUME_MAP,
+        "has_run_mode":     True,
+        "payload_builder":  build_dcerv_payload,
+    },
+    "MIDERV": {
+        "run_mode_get_map": MIDERV_RUN_MODE_GET_MAP,
+        "run_mode_set_map": MIDERV_RUN_MODE_SET_MAP,
+        "air_volume_map":   MIDERV_AIR_VOLUME_MAP,
+        "has_run_mode":     True,
+        "payload_builder":  build_miderv_payload,
+    },
+    "SMALLERV": {
+        "run_mode_get_map": {},
+        "run_mode_set_map": {},
+        "air_volume_map":   SMALLERV_AIR_VOLUME_MAP,
+        "has_run_mode":     False,
+        "payload_builder":  build_smallerv_payload,
+    },
+}
