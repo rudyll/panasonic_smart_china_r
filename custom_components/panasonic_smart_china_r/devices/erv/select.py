@@ -174,3 +174,17 @@ class FreshAirExtraSelect(_FreshAirSelect):
         self._status_key = config["field"]
         self._get_map = config["get_map"]
         self._attr_options = list(dict.fromkeys(self._get_map.values()))
+        self._available_when: dict | None = config.get("available_when")
+
+    @property
+    def available(self) -> bool:
+        if not self._available_when:
+            return super().available
+        data = self.coordinator.data or {}
+        raw = data.get(self._available_when["field"])
+        if raw is None:
+            return False
+        try:
+            return int(raw) == self._available_when["value"]
+        except (TypeError, ValueError):
+            return False
