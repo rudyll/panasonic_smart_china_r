@@ -26,6 +26,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [FreshAirVolumeSelect(coordinator, entry, profile)]
     if profile["has_run_mode"]:
         entities.append(FreshAirModeSelect(coordinator, entry, profile))
+    for cfg in profile.get("extra_selects", []):
+        entities.append(FreshAirExtraSelect(coordinator, entry, profile, cfg))
     async_add_entities(entities)
 
 
@@ -156,4 +158,19 @@ class FreshAirVolumeSelect(_FreshAirSelect):
     def __init__(self, coordinator, entry, profile: dict):
         super().__init__(coordinator, entry, profile)
         self._get_map = profile["air_volume_map"]
+        self._attr_options = list(dict.fromkeys(self._get_map.values()))
+
+
+class FreshAirExtraSelect(_FreshAirSelect):
+    """由 profile extra_selects 配置驱动的通用 select 实体。"""
+
+    def __init__(self, coordinator, entry, profile: dict, config: dict):
+        # 在调用父类 __init__ 前设置实例变量（父类 __init__ 会用到它们）
+        self._set_field = config["field"]
+        self._unique_suffix = config["suffix"]
+        self._name_suffix = config["name_suffix"]
+        self._attr_icon = config["icon"]
+        super().__init__(coordinator, entry, profile)
+        self._status_key = config["field"]
+        self._get_map = config["get_map"]
         self._attr_options = list(dict.fromkeys(self._get_map.values()))

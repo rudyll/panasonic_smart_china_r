@@ -125,6 +125,38 @@ def detect_erv_profile(status_data: dict) -> str:
     return "DCERV"
 
 
+# 各机型额外 select 实体配置
+# 每项：field=payload字段, get_map=GET值→显示名, suffix=unique_id后缀, name_suffix=实体名后缀, icon
+_DCERV_EXTRA_SELECTS = [
+    {"field": "preSet",       "get_map": {0: "标准模式", 1: "正压模式", 2: "自定义模式"},
+     "suffix": "pressure_mode",    "name_suffix": "压差模式",        "icon": "mdi:gauge"},
+    {"field": "preM",         "get_map": {0: "弱", 1: "中", 2: "强"},
+     "suffix": "pressure_level",   "name_suffix": "正压强度",        "icon": "mdi:gauge-low"},
+    {"field": "userSupWind",  "get_map": {0: "0%", 20: "20%", 40: "40%", 60: "60%", 80: "80%", 100: "100%"},
+     "suffix": "supply_wind",      "name_suffix": "自定义送风量",    "icon": "mdi:arrow-up-circle-outline"},
+    {"field": "userExhWind",  "get_map": {0: "0%", 20: "20%", 40: "40%", 60: "60%", 80: "80%", 100: "100%"},
+     "suffix": "exhaust_wind",     "name_suffix": "自定义排风量",    "icon": "mdi:arrow-down-circle-outline"},
+    {"field": "oaFilEx",      "get_map": {0: "90天", 1: "120天", 2: "150天", 3: "180天"},
+     "suffix": "oa_filter_cycle",  "name_suffix": "外滤网更换周期",  "icon": "mdi:air-filter"},
+    {"field": "pmSen",        "get_map": {0: "35 µg/m³", 1: "50 µg/m³", 2: "75 µg/m³"},
+     "suffix": "pm25_sensitivity", "name_suffix": "PM2.5 触发阈值", "icon": "mdi:blur"},
+    {"field": "coSen",        "get_map": {0: "800 ppm", 1: "1000 ppm", 2: "1500 ppm"},
+     "suffix": "co2_sensitivity",  "name_suffix": "CO₂ 触发阈值",   "icon": "mdi:molecule-co2"},
+    {"field": "tvSen",        "get_map": {0: "低", 1: "高"},
+     "suffix": "tvoc_sensitivity", "name_suffix": "TVOC 触发阈值",  "icon": "mdi:air-purifier"},
+]
+
+_MIDERV_EXTRA_SELECTS = [
+    {"field": "saFilEx",      "get_map": {1: "60天", 2: "90天", 3: "120天"},
+     "suffix": "sa_filter_ex",     "name_suffix": "PM2.5滤网更换周期",  "icon": "mdi:air-filter"},
+    {"field": "raFilEx",      "get_map": {0: "180天", 1: "210天", 2: "240天", 3: "270天", 4: "300天", 5: "330天", 6: "365天"},
+     "suffix": "ra_filter_ex",     "name_suffix": "回风滤网更换周期",    "icon": "mdi:air-filter"},
+    {"field": "saFilCl",      "get_map": {0: "30天", 1: "60天"},
+     "suffix": "sa_filter_cl",     "name_suffix": "PM2.5滤网清洗提醒",  "icon": "mdi:broom"},
+    {"field": "raFilCl",      "get_map": {0: "30天", 1: "60天"},
+     "suffix": "ra_filter_cl",     "name_suffix": "回风滤网清洗提醒",    "icon": "mdi:broom"},
+]
+
 ERV_PROFILES: dict[str, dict] = {
     "DCERV": {
         "run_mode_get_map": RUN_MODE_GET_MAP,
@@ -132,6 +164,7 @@ ERV_PROFILES: dict[str, dict] = {
         "air_volume_map":   AIR_VOLUME_MAP,
         "has_run_mode":     True,
         "payload_builder":  build_dcerv_payload,
+        "extra_selects":    _DCERV_EXTRA_SELECTS,
     },
     "MIDERV": {
         "run_mode_get_map": MIDERV_RUN_MODE_GET_MAP,
@@ -139,6 +172,7 @@ ERV_PROFILES: dict[str, dict] = {
         "air_volume_map":   MIDERV_AIR_VOLUME_MAP,
         "has_run_mode":     True,
         "payload_builder":  build_miderv_payload,
+        "extra_selects":    _MIDERV_EXTRA_SELECTS,
     },
     "SMALLERV": {
         "run_mode_get_map": {},
@@ -146,5 +180,6 @@ ERV_PROFILES: dict[str, dict] = {
         "air_volume_map":   SMALLERV_AIR_VOLUME_MAP,
         "has_run_mode":     False,
         "payload_builder":  build_smallerv_payload,
+        "extra_selects":    [],
     },
 }
