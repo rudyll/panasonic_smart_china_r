@@ -57,6 +57,8 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return "SMALLERV"
         if upper.startswith("MIDERV"):
             return "MIDERV"
+        if upper.startswith("NEWDCERV"):
+            return "NEWDCERV"
         return "DCERV"
 
     def _build_payload(self):

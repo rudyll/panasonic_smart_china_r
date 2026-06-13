@@ -169,6 +169,15 @@ ERV_PROFILES: dict[str, dict] = {
         "payload_builder":  build_dcerv_payload,
         "extra_selects":    _DCERV_EXTRA_SELECTS,
     },
+    # NewDCERV：端点为 ADevGetStatus/SetStatusNewDCERV，字段结构暂按 DCERV 处理，待实测确认
+    "NEWDCERV": {
+        "run_mode_get_map": RUN_MODE_GET_MAP,
+        "run_mode_set_map": RUN_MODE_SET_MAP,
+        "air_volume_map":   AIR_VOLUME_MAP,
+        "has_run_mode":     True,
+        "payload_builder":  build_dcerv_payload,
+        "extra_selects":    _DCERV_EXTRA_SELECTS,
+    },
     "MIDERV": {
         "run_mode_get_map": MIDERV_RUN_MODE_GET_MAP,
         "run_mode_set_map": MIDERV_RUN_MODE_SET_MAP,

@@ -22,16 +22,18 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 - 型号：配合 `CZ-RD501DW2` 线控器的松下家用多联/风管机
 - 提供标准 `climate` 实体，支持开关机、模式切换、温度设定、风速调节
 
-### 新风换气机（category `0800`）✅ 完全可用
+### 新风换气机（category `0800` / `0850`）
 
-集成会在首次拉取设备状态后自动识别机型（DCERV / MidERV / SmallERV），无需手动配置。
+集成会在首次拉取设备状态后自动识别机型（DCERV / NewDCERV / MidERV / SmallERV），无需手动配置。
 
-#### 已实测机型
+#### 机型支持状态
 
-| 机型 | devSubTypeId | 状态 |
-|------|-------------|------|
-| FY-35ZJD2C | DCERV-03 | ✅ 实测可用 |
-| FV-RZ06VD1 | MIDERV | ✅ 用户确认可用 |
+| 机型 | devSubTypeId | category | 状态 |
+|------|-------------|----------|------|
+| FY-35ZJD2C | DCERV-03 | 0800 | ✅ 实测可用 |
+| FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
+| SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
+| NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
 #### MidERV（FV-RZ06VD1 等）
 
@@ -144,7 +146,17 @@ token = sha512(f"{inner}_{suffix}")
 
 ## 其他设备型号
 
-本插件目前仅实测 DCERV-03 和 0900 空调。如果你的松下设备型号不同，可参考 [Wiki：如何适配新设备](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号) 自行逆向并提交 PR。
+| 设备类型 | Category | 状态 | 说明 |
+|----------|----------|------|------|
+| 中央空调（CZ-RD501DW2） | 0900 | ✅ 实测 | |
+| DCERV-03 大型新风 | 0800 | ✅ 实测 | |
+| MidERV 中型新风 | 0800 | ✅ 用户确认 | FV-RZ06VD1 |
+| SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
+| NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
+| 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
+| 其他 0900 空调控制器 | 0900 | 🔍 征集数据 | [issue #7](https://github.com/rudyll/panasonic_smart_china_r/issues/7) |
+
+如果你的松下设备不在以上列表，可参考 [Wiki：如何适配新设备](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号) 自行逆向并提交 PR。
 
 ---
 
