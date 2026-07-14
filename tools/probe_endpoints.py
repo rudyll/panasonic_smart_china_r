@@ -5,7 +5,7 @@
 对每台设备测试所有已知端点，帮助识别新设备型号的正确 API 路径。
 """
 import hashlib, sys, requests
-from dump_device_params import login, headers
+from dump_device_params import login, headers, get_bind_dev_info
 
 requests.packages.urllib3.disable_warnings()
 
@@ -64,8 +64,13 @@ def probe_device(device_id: str, usr_id: str, ssid: str):
 
 def main():
     print("登录中...")
-    usr_id, ssid, dev_list, *_ = login()
-    print(f"  usrId={usr_id}  ssid={ssid[:12]}...\n")
+    usr_id, ssid, family_id, real_family_id = login()
+    print(f"  usrId={usr_id}  ssid={ssid[:12]}...")
+
+    print("拉取设备列表 ...")
+    raw = get_bind_dev_info(usr_id, ssid, family_id, real_family_id)
+    dev_list = raw.get("results", {}).get("devList", [])
+    print(f"  共 {len(dev_list)} 台设备\n")
 
     for dev in dev_list:
         device_id = dev.get("deviceId", "")
