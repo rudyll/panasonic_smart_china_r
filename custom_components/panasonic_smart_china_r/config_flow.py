@@ -231,7 +231,7 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         token = generate_device_token(self._selected_dev_id) or ""
         dev_info = self._devices.get(self._selected_dev_id) or {}
         dev_name = dev_info.get("deviceName", "Panasonic Fresh Air")
-        dev_sub_type_id = dev_info.get("params", {}).get("devSubTypeId", "")
+        dev_sub_type_id = dev_info.get("devSubTypeId", "")
         return self.async_create_entry(
             title=dev_name,
             data={

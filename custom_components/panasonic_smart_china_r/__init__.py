@@ -47,7 +47,13 @@ async def _migrate_dev_sub_type_id(hass: HomeAssistant, entry: ConfigEntry) -> N
     ssid = entry.data.get(CONF_SSID, "")
     family_id = entry.data.get("familyId")
     real_family_id = entry.data.get("realFamilyId")
-    if not device_id or not usr_id or not ssid:
+    if (
+        not device_id
+        or not usr_id
+        or not ssid
+        or family_id is None
+        or real_family_id is None
+    ):
         return
 
     headers = {
@@ -75,7 +81,15 @@ async def _migrate_dev_sub_type_id(hass: HomeAssistant, entry: ConfigEntry) -> N
         _LOGGER.warning("devSubTypeId migration fetch failed: %s", err)
         return
 
-    for dev in (data.get("results") or {}).get("devList", []):
+    if not isinstance(data, dict):
+        _LOGGER.warning("devSubTypeId migration returned a non-object response")
+        return
+
+    results = data.get("results")
+    if not isinstance(results, dict):
+        return
+
+    for dev in results.get("devList", []):
         if dev.get("deviceId") == device_id:
             sub_type = dev.get("params", {}).get("devSubTypeId", "")
             if sub_type:

@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.1.0-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.1.1-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -32,6 +32,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 |------|-------------|----------|------|
 | FY-35ZJD2C | DCERV-03 | 0800 | ✅ 实测可用 |
 | FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
+| FV-25ZDP2C | LD6C | 0800 | 🟡 MidERV 协议适配，待用户设备验证 |
 | SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
 | NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
@@ -151,6 +152,7 @@ token = sha512(f"{inner}_{suffix}")
 | 中央空调（CZ-RD501DW2） | 0900 | ✅ 实测 | |
 | DCERV-03 大型新风 | 0800 | ✅ 实测 | |
 | MidERV 中型新风 | 0800 | ✅ 用户确认 | FV-RZ06VD1 |
+| LD6C 新风 | 0800 | 🟡 待设备验证 | FV-25ZDP2C（使用 MidERV 实时状态接口） |
 | SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
 | NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
