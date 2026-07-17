@@ -43,6 +43,9 @@ _DCERV_ENDPOINT_MAP: dict[str, tuple[str, str]] = {
     "NEWDCERV": (_BASE_URL + "ADevGetStatusNewDCERV", _BASE_URL + "ADevSetStatusNewDCERV"),
     "MIDERV":   (_BASE_URL + "ADevGetStatusMidERV",   _BASE_URL + "ADevSetStatusMidERV"),
     "SMALLERV": (_BASE_URL + "ADevGetStatusSmallERV", _BASE_URL + "ADevSetStatusSmallERV"),
+    # LD6C（FV-25ZDP2C 等）协议与 MidERV 一致：MidERV 端点返回真实传感器读数，
+    # 而 DCERV 端点对该机型返回 127/255/65535 等填充值。
+    "LD6C":     (_BASE_URL + "ADevGetStatusMidERV",   _BASE_URL + "ADevSetStatusMidERV"),
 }
 
 

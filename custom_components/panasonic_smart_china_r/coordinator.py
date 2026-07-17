@@ -13,7 +13,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import relogin_entry, response_looks_bad
+from .api import generate_device_token, relogin_entry, response_looks_bad
 from .const import (
     CONF_DEVICE_ID,
     CONF_DEV_SUB_TYPE_ID,
@@ -22,6 +22,7 @@ from .const import (
     CONF_USR_ID,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    get_dcerv_endpoints,
 )
 from .exceptions import LoginFailed, ReloginCooldown
 
@@ -31,7 +32,7 @@ URL_GET_DEV = "https://app.psmartcloud.com/App/UsrGetBindDevInfo"
 
 
 class FreshAirCoordinator(DataUpdateCoordinator):
-    """拉取 UsrGetBindDevInfo，按 deviceId 抽取对应设备的 statusAll。"""
+    """拉取新风机状态；LD6C 使用 MidERV 实时端点。"""
 
     def __init__(self, hass, entry):
         interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
@@ -59,6 +60,10 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return "MIDERV"
         if upper.startswith("NEWDCERV"):
             return "NEWDCERV"
+        # LD6C（FV-25ZDP2C 等）走 MidERV 端点和 profile，
+        # DCERV 端点对该机型只返回填充值（oaTeC=127、oaHumC=255 等）。
+        if upper.startswith("LD6C"):
+            return "MIDERV"
         return "DCERV"
 
     def _build_payload(self):
@@ -70,6 +75,36 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         if real_family_id is None:
             real_family_id = self._entry.data.get("realFamilyId")
         return family_id, real_family_id
+
+    async def _fetch_ld6c_live(self):
+        """Fetch LD6C sensor data from its MidERV-compatible live endpoint."""
+        get_url, _ = get_dcerv_endpoints(
+            self._entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
+        )
+        token = generate_device_token(self._device_id)
+        if token is None:
+            raise UpdateFailed("Cannot generate device token for LD6C live fetch")
+
+        payload = {
+            "id": 1,
+            "uiVersion": 4.0,
+            "params": {
+                "usrId": self._usr_id,
+                "deviceId": self._device_id,
+                "token": token,
+            },
+        }
+        headers = {
+            "User-Agent": "SmartApp",
+            "Content-Type": "application/json",
+            "Cookie": f"SSID={self._ssid}",
+        }
+        session = async_get_clientsession(self.hass)
+        async with async_timeout.timeout(10):
+            resp = await session.post(
+                get_url, json=payload, headers=headers, ssl=False
+            )
+            return await resp.json()
 
     async def _fetch(self):
         family_id, real_family_id = self._build_payload()
@@ -98,8 +133,13 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return await resp.json()
 
     async def _async_update_data(self):
+        sub_type = self._entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
+        is_ld6c = self.erv_profile == "MIDERV" and (
+            sub_type.upper().replace("-", "").startswith("LD6C")
+        )
+        fetch = self._fetch_ld6c_live if is_ld6c else self._fetch
         try:
-            data = await self._fetch()
+            data = await fetch()
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(f"Fresh-air fetch failed: {err}") from err
 
@@ -130,13 +170,19 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             except LoginFailed as err:
                 raise ConfigEntryAuthFailed(str(err)) from err
             try:
-                data = await self._fetch()
+                data = await fetch()
             except Exception as err:  # noqa: BLE001
                 raise UpdateFailed(f"Fresh-air fetch (post-relogin) failed: {err}") from err
             if data is None or response_looks_bad(data):
                 raise ConfigEntryAuthFailed(
                     f"Still bad after re-login: errorCode={data.get('errorCode') if isinstance(data, dict) else None}"
                 )
+
+        if is_ld6c:
+            results = data.get("results") if isinstance(data, dict) else None
+            if isinstance(results, dict) and results:
+                return results
+            raise UpdateFailed("LD6C live response has no status results")
 
         status_all = None
         for dev in data.get("results", {}).get("devList", []):
