@@ -9,12 +9,6 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 ---
 
-## 效果截图
-
-<img src="custom_components/panasonic_smart_china_r/assets/screenshot1.png" width="380" alt="设备控制页">　<img src="custom_components/panasonic_smart_china_r/assets/screenshot2.png" width="560" alt="空气质量仪表板">
-
----
-
 ## 支持设备
 
 ### 中央空调（category `0900`）✅ 完全可用
@@ -170,6 +164,12 @@ PMS_USER='松下智家账号' PMS_PASS='密码' python3 tools/probe_endpoints.py
 ```
 
 命令会生成 `endpoint_report_*.json`，自动隐藏账号、会话、token 和设备唯一标识，可附加到 GitHub issue。请勿上传 `dump_*.json`，原始 dump 可能包含个人设备信息。完整步骤见 [Wiki：适配新设备型号](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号)。
+
+---
+
+## 效果截图
+
+<img src="custom_components/panasonic_smart_china_r/assets/screenshot1.png" width="380" alt="设备控制页">
 
 ---
 
