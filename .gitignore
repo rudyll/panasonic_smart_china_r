@@ -5,3 +5,4 @@ __pycache__/
 # 测试 dump 文件（含个人设备信息，不提交）
 tools/dump_*.json
 tools/live_*.json
+endpoint_report_*.json

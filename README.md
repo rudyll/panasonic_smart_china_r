@@ -160,6 +160,17 @@ token = sha512(f"{inner}_{suffix}")
 
 如果你的松下设备不在以上列表，可参考 [Wiki：如何适配新设备](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号) 自行逆向并提交 PR。
 
+### 提供脱敏设备报告
+
+如果已支持的新风机出现传感器“未知”、数值异常或部分功能不可用，可在仓库根目录运行：
+
+```bash
+python3 -m pip install requests
+PMS_USER='松下智家账号' PMS_PASS='密码' python3 tools/probe_endpoints.py --report
+```
+
+命令会生成 `endpoint_report_*.json`，自动隐藏账号、会话、token 和设备唯一标识，可附加到 GitHub issue。请勿上传 `dump_*.json`，原始 dump 可能包含个人设备信息。完整步骤见 [Wiki：适配新设备型号](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号)。
+
 ---
 
 ## 免责声明
