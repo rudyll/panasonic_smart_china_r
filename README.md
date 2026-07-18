@@ -24,7 +24,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 ### 新风换气机（category `0800` / `0850`）
 
-集成会在首次拉取设备状态后自动识别机型（DCERV / NewDCERV / MidERV / SmallERV），无需手动配置。
+集成会根据松下设备列表返回的 `devSubTypeId` 自动选择机型协议和云端端点（DCERV / NewDCERV / MidERV / SmallERV），无需手动配置。旧版配置缺少该字段时，集成会在加载时自动补全。
 
 #### 机型支持状态
 
