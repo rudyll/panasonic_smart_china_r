@@ -65,6 +65,44 @@ LD6C_AIR_VOLUME_MAP: dict[int, str] = {0: "静音", 1: "低", 2: "高"}
 # SmallERV 风量来自 App 的 MiniErvBeanConvert。
 SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {0: "低", 1: "高"}
 
+# 仅对已由专用端点报告和 App 截图确认的机型收敛传感器集合。
+# 未列出的 profile 暂保留现有通用集合，等待各自设备报告后再收敛。
+SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
+    "LD6C": (
+        "oaPMC", "raPMC", "oaHumC", "oaTeC",
+        "oaFilExTL", "saFilExTL", "raFilExTL", "resFilExTL",
+    ),
+}
+
+# 占位值必须按字段判断，不能全局过滤：例如 PM2.5 的 255 可能是真实读数，
+# 而温度的 127、湿度的 255、PM2.5/CO₂ 的 65535 是协议无效值。
+SENSOR_INVALID_VALUES: dict[str, frozenset[int]] = {
+    "oaPMC": frozenset({65535}),
+    "saPMC": frozenset({65535}),
+    "raPMC": frozenset({65535}),
+    "oaHumC": frozenset({255}),
+    "saHumC": frozenset({255}),
+    "raHumC": frozenset({255}),
+    "oaTeC": frozenset({127, 255}),
+    "saTeC": frozenset({127, 255}),
+    "raTeC": frozenset({127, 255}),
+    "raCO2C": frozenset({65535}),
+    "raTVC": frozenset({255}),
+    "oaFilExTL": frozenset({65535}),
+    "saFilExTL": frozenset({65535}),
+    "raFilExTL": frozenset({65535}),
+    "resFilExTL": frozenset({65535}),
+}
+
+
+def is_invalid_sensor_value(key: str, value) -> bool:
+    """Return whether value is a protocol sentinel for this sensor field."""
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return False
+    return numeric in SENSOR_INVALID_VALUES.get(key, ())
+
 
 def build_dcerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
     """构造 DCERV-03 完整 SET payload（来自 App 源码 DevStatusSetBean）。

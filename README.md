@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.1.3-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.1.4-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -26,7 +26,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 |------|-------------|----------|------|
 | FY-35ZJD2C | DCERV-03 | 0800 | ✅ 实测可用 |
 | FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
-| FV-25ZDP2C | LD6C | 0800 | 🟡 已按 App 专用协议适配，待用户设备验证 |
+| FV-25ZDP2C | LD6C | 0800 | 🟡 专用状态接口与风量已获用户验证 |
 | SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
 | NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
@@ -48,6 +48,10 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 - 运行模式：热交换 / 内循环 / 自动ECO / 消毒 (`runM` 1/4/6/7)
 - 风量：静音 / 低 / 高 (`airVo` 0/1/2)
 - 开关机与假日模式使用 LD6C 完整控制 payload；其他设置待设备实测确认值域后开放
+- 已验证传感器：室外 PM2.5、室外温湿度、室内/回风 PM2.5，以及四类滤网剩余寿命
+- 不创建设备以 `127 / 255 / 65535` 占位的送风 PM2.5、CO₂、TVOC 和送风/回风温湿度实体
+
+> 从 2.1.3 或更早版本升级后，旧实体可能残留为“不可用”。要彻底清理，请升级并重启后删除该设备对应的集成配置项，再重新添加设备。
 
 #### SmallERV
 

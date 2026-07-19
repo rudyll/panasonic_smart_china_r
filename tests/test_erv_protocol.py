@@ -60,6 +60,27 @@ class ErvProtocolTest(unittest.TestCase):
         self.assertNotIn("preSet", payload)
         self.assertNotIn("userSupWind", payload)
 
+    def test_ld6c_sensor_whitelist_matches_verified_device_report(self):
+        self.assertEqual(
+            set(ERV.SENSOR_KEYS_BY_PROFILE["LD6C"]),
+            {
+                "oaPMC", "raPMC", "oaHumC", "oaTeC",
+                "oaFilExTL", "saFilExTL", "raFilExTL", "resFilExTL",
+            },
+        )
+        self.assertNotIn("saPMC", ERV.SENSOR_KEYS_BY_PROFILE["LD6C"])
+        self.assertNotIn("raCO2C", ERV.SENSOR_KEYS_BY_PROFILE["LD6C"])
+
+    def test_sensor_sentinels_are_field_specific(self):
+        self.assertTrue(ERV.is_invalid_sensor_value("saPMC", 65535))
+        self.assertTrue(ERV.is_invalid_sensor_value("raCO2C", "65535"))
+        self.assertTrue(ERV.is_invalid_sensor_value("raHumC", 255))
+        self.assertTrue(ERV.is_invalid_sensor_value("raTeC", 127))
+        self.assertTrue(ERV.is_invalid_sensor_value("saTeC", 255))
+        self.assertFalse(ERV.is_invalid_sensor_value("raPMC", 0))
+        self.assertFalse(ERV.is_invalid_sensor_value("oaPMC", 255))
+        self.assertFalse(ERV.is_invalid_sensor_value("oaFilExTL", 0))
+
 
 if __name__ == "__main__":
     unittest.main()

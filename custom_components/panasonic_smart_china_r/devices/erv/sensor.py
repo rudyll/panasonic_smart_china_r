@@ -19,6 +19,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...const import CONF_DEVICE_ID, DOMAIN
+from . import SENSOR_KEYS_BY_PROFILE, is_invalid_sensor_value
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,13 +49,20 @@ SENSOR_SPECS: tuple[FreshAirSensorSpec, ...] = (
     FreshAirSensorSpec("oaFilExTL","外滤网剩余寿命",   "oa_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("saFilExTL","送风滤网剩余寿命", "sa_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("raFilExTL","回风滤网剩余寿命", "ra_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
+    FreshAirSensorSpec("resFilExTL","新风集尘滤网剩余寿命", "res_filter_life",None,                    UnitOfTime.HOURS,                icon="mdi:air-filter"),
 )
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    allowed_keys = SENSOR_KEYS_BY_PROFILE.get(coordinator.erv_profile)
+    specs = (
+        SENSOR_SPECS
+        if allowed_keys is None
+        else tuple(spec for spec in SENSOR_SPECS if spec.key in allowed_keys)
+    )
     async_add_entities(
-        PanasonicFreshAirSensor(coordinator, entry, spec) for spec in SENSOR_SPECS
+        PanasonicFreshAirSensor(coordinator, entry, spec) for spec in specs
     )
 
 
@@ -91,6 +99,8 @@ class PanasonicFreshAirSensor(CoordinatorEntity, SensorEntity):
             if alias:
                 raw = data.get(alias)
         if raw is None or raw == "":
+            return None
+        if is_invalid_sensor_value(self._spec.key, raw):
             return None
         try:
             return int(raw)
