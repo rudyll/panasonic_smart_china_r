@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.5
+
+- 将集成品牌图片放入 Home Assistant 与 HACS 识别的 `brand` 目录，并同时提供图标和 Logo。
+
+> 项目内品牌图片需要 Home Assistant 2026.3 或更高版本；更早版本仍需通过 Home Assistant 官方 brands 仓库提供图片。
+
 ## 2.1.4
 
 - 根据 FV-25ZDP2C 的 LD6C 专用端点报告，只创建 App 实际支持的室外 PM2.5、室外温湿度、室内/回风 PM2.5 和滤网寿命实体。
