@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.6
+
+- DCERV 改用 App 对应的 `ADevGetStatusDCERV` 专用端点读取实时状态，修复送风温度和滤网寿命因设备列表状态字段缺失而显示“未知”的问题。
+- 根据 FY-35ZJD2C 实机报告收敛 DCERV 传感器，不再创建设备未返回的送风湿度和 LD6C 专属新风集尘滤网实体。
+
 ## 2.1.5
 
 - 将集成品牌图片放入 Home Assistant 与 HACS 识别的 `brand` 目录，并同时提供图标和 Logo。

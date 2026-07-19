@@ -68,11 +68,20 @@ SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {0: "低", 1: "高"}
 # 仅对已由专用端点报告和 App 截图确认的机型收敛传感器集合。
 # 未列出的 profile 暂保留现有通用集合，等待各自设备报告后再收敛。
 SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
+    "DCERV": (
+        "oaPMC", "saPMC", "raPMC", "oaHumC", "raHumC",
+        "oaTeC", "saTeC", "raTeC", "raCO2C", "raTVC",
+        "oaFilExTL", "saFilExTL", "raFilExTL",
+    ),
     "LD6C": (
         "oaPMC", "raPMC", "oaHumC", "oaTeC",
         "oaFilExTL", "saFilExTL", "raFilExTL", "resFilExTL",
     ),
 }
+
+# 这两个机型的实时传感器字段由各自专用状态端点提供；设备列表里的
+# statusAll 可能缺少送风温度、滤网寿命等字段。
+LIVE_STATUS_PROFILES = frozenset({"DCERV", "LD6C"})
 
 # 占位值必须按字段判断，不能全局过滤：例如 PM2.5 的 255 可能是真实读数，
 # 而温度的 127、湿度的 255、PM2.5/CO₂ 的 65535 是协议无效值。

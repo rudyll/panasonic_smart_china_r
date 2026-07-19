@@ -71,6 +71,14 @@ class ErvProtocolTest(unittest.TestCase):
         self.assertNotIn("saPMC", ERV.SENSOR_KEYS_BY_PROFILE["LD6C"])
         self.assertNotIn("raCO2C", ERV.SENSOR_KEYS_BY_PROFILE["LD6C"])
 
+    def test_dcerv_uses_live_endpoint_and_only_reported_sensor_fields(self):
+        self.assertIn("DCERV", ERV.LIVE_STATUS_PROFILES)
+        self.assertIn("LD6C", ERV.LIVE_STATUS_PROFILES)
+        self.assertIn("saTeC", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
+        self.assertIn("saFilExTL", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
+        self.assertNotIn("saHumC", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
+        self.assertNotIn("resFilExTL", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
+
     def test_sensor_sentinels_are_field_specific(self):
         self.assertTrue(ERV.is_invalid_sensor_value("saPMC", 65535))
         self.assertTrue(ERV.is_invalid_sensor_value("raCO2C", "65535"))

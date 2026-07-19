@@ -65,6 +65,8 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 #### DCERV-03（FY-35ZJD2C 等）
 
+- 使用 App 对应的 `ADevGetStatusDCERV` 专用端点读取实时状态
+
 **传感器（稳定可用）：**
 
 | 传感器 | 字段 | 说明 |

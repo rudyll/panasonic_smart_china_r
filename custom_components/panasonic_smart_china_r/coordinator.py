@@ -25,6 +25,7 @@ from .const import (
     get_dcerv_endpoints,
 )
 from .exceptions import LoginFailed, ReloginCooldown
+from .devices.erv import LIVE_STATUS_PROFILES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,14 +75,14 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             real_family_id = self._entry.data.get("realFamilyId")
         return family_id, real_family_id
 
-    async def _fetch_ld6c_live(self):
-        """Fetch LD6C state from the dedicated endpoint used by the app."""
+    async def _fetch_live_status(self):
+        """Fetch live state from the profile-specific endpoint used by the app."""
         get_url, _ = get_dcerv_endpoints(
             self._entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
         )
         token = generate_device_token(self._device_id)
         if token is None:
-            raise UpdateFailed("Cannot generate device token for LD6C live fetch")
+            raise UpdateFailed("Cannot generate device token for live status fetch")
 
         payload = {
             "id": 1,
@@ -131,8 +132,8 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return await resp.json()
 
     async def _async_update_data(self):
-        is_ld6c = self.erv_profile == "LD6C"
-        fetch = self._fetch_ld6c_live if is_ld6c else self._fetch
+        uses_live_status = self.erv_profile in LIVE_STATUS_PROFILES
+        fetch = self._fetch_live_status if uses_live_status else self._fetch
         try:
             data = await fetch()
         except Exception as err:  # noqa: BLE001
@@ -173,11 +174,13 @@ class FreshAirCoordinator(DataUpdateCoordinator):
                     f"Still bad after re-login: errorCode={data.get('errorCode') if isinstance(data, dict) else None}"
                 )
 
-        if is_ld6c:
+        if uses_live_status:
             results = data.get("results") if isinstance(data, dict) else None
             if isinstance(results, dict) and results:
                 return results
-            raise UpdateFailed("LD6C live response has no status results")
+            raise UpdateFailed(
+                f"{self.erv_profile} live response has no status results"
+            )
 
         status_all = None
         for dev in data.get("results", {}).get("devList", []):
