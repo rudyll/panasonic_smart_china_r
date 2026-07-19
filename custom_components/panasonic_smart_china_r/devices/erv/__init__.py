@@ -52,7 +52,7 @@ MIDERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 2: "中", 3: "高"}
 LD6C_RUN_MODE_GET_MAP: dict[int, str] = {
     1: "热交换",
     4: "内循环",
-    6: "自动",
+    6: "自动ECO",
     7: "消毒",
 }
 
@@ -62,8 +62,8 @@ LD6C_RUN_MODE_SET_MAP: dict[str, int] = {
 
 LD6C_AIR_VOLUME_MAP: dict[int, str] = {0: "静音", 1: "低", 2: "高"}
 
-# SmallERV 风量（值 1/3，跳过 2）
-SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 3: "高"}
+# SmallERV 风量来自 App 的 MiniErvBeanConvert。
+SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {0: "低", 1: "高"}
 
 
 def build_dcerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
@@ -109,15 +109,41 @@ def build_miderv_payload(device_id: str, token: str, usr_id: str, **overrides) -
 
 
 def build_smallerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
-    """构造 SmallERV 完整 SET payload。"""
+    """构造 App `MiniErvDevStatusSetBean` 对应的完整 SET payload。"""
     p: dict = {
         "deviceId": device_id, "token": token, "usrId": usr_id,
         "runSta": 255, "airVo": 255,
-        "filSet": 255, "oaFilExPM": 255, "saFilEx": 255,
-        "tOnH": 127, "tOnMin": 127, "tOnSta": 255,
-        "tOffH": 127, "tOffMin": 127, "tOffSta": 255,
+        # App Bean 唯一不是 skip 值的默认字段。
+        "filSet": 0, "oaFilExPM": 255, "saFilEx": 255,
         "holM": 255,
     }
+    for i in range(1, 7):
+        # MiniErvDevStatusSetBean 将小时和分钟也覆盖为 255。
+        for prefix in ("tSta", "tSet", "tH", "tMin", "tWeek"):
+            p[f"{prefix}{i}"] = 255
+    p.update(overrides)
+    return p
+
+
+def build_newdcerv_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
+    """构造 App `NewDevSetBean` 对应的完整 SET payload。"""
+    fields = (
+        "runSta", "runM", "airVo", "preM", "holM", "autoSen", "nanoe",
+        "oaPMC", "pmFstFilCl", "pmFstFilEx", "oaFilEx", "returnInFilEx",
+        "InLoopFilEx",
+    )
+    p: dict = {
+        "deviceId": device_id,
+        "token": token,
+        "usrId": usr_id,
+        **{field: 255 for field in fields},
+    }
+    for i in range(1, 7):
+        p[f"tSta{i}"] = 255
+        p[f"tSet{i}"] = 255
+        p[f"tH{i}"] = 127
+        p[f"tMin{i}"] = 127
+        p[f"tWeek{i}"] = 255
     p.update(overrides)
     return p
 
@@ -209,14 +235,16 @@ ERV_PROFILES: dict[str, dict] = {
         "payload_builder":  build_dcerv_payload,
         "extra_selects":    _DCERV_EXTRA_SELECTS,
     },
-    # NewDCERV：端点为 ADevGetStatus/SetStatusNewDCERV，字段结构暂按 DCERV 处理，待实测确认
     "NEWDCERV": {
         "run_mode_get_map": RUN_MODE_GET_MAP,
         "run_mode_set_map": RUN_MODE_SET_MAP,
         "air_volume_map":   AIR_VOLUME_MAP,
         "has_run_mode":     True,
-        "payload_builder":  build_dcerv_payload,
-        "extra_selects":    _DCERV_EXTRA_SELECTS,
+        "payload_builder":  build_newdcerv_payload,
+        # App SET 请求会回传当前室外 PM2.5，控制时从 coordinator 状态复制。
+        "copy_status_fields": ("oaPMC",),
+        # 滤网周期等值域仍待实机确认，先不暴露错误的 DCERV 控件。
+        "extra_selects":    [],
     },
     "MIDERV": {
         "run_mode_get_map": MIDERV_RUN_MODE_GET_MAP,

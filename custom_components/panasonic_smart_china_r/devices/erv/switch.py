@@ -38,6 +38,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
             coordinator.erv_profile or "DCERV", ERV_PROFILES["DCERV"]
         )
         self._payload_builder = profile["payload_builder"]
+        self._copy_status_fields = profile.get("copy_status_fields", ())
 
     async def _set_field(self, field: str, value: int) -> None:
         entry = self._entry
@@ -55,7 +56,14 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
             "Cookie": f"SSID={ssid}",
         }
 
-        params = self._payload_builder(device_id, token, usr_id, **{field: value})
+        status = self.coordinator.data or {}
+        payload_overrides = {
+            status_field: status[status_field]
+            for status_field in self._copy_status_fields
+            if status_field in status
+        }
+        payload_overrides[field] = value
+        params = self._payload_builder(device_id, token, usr_id, **payload_overrides)
         _LOGGER.debug("%s SET %s=%s", self._attr_unique_id, field, value)
 
         self._req_id += 1

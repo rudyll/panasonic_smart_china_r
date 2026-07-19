@@ -44,6 +44,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
         self._entry = entry
         self._get_map: dict[int, str] = {}
         self._payload_builder = profile["payload_builder"]
+        self._copy_status_fields = profile.get("copy_status_fields", ())
         device_id = entry.data[CONF_DEVICE_ID]
         self._attr_options = list(dict.fromkeys(self._get_map.values()))  # deduplicate, preserve order
         self._attr_name = f"{entry.title} {self._name_suffix}"
@@ -94,7 +95,14 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
             "Cookie": f"SSID={ssid}",
         }
 
-        params = self._payload_builder(device_id, token, usr_id, **{self._set_field: set_value})
+        status = self.coordinator.data or {}
+        payload_overrides = {
+            field: status[field]
+            for field in self._copy_status_fields
+            if field in status
+        }
+        payload_overrides[self._set_field] = set_value
+        params = self._payload_builder(device_id, token, usr_id, **payload_overrides)
         _LOGGER.debug("%s SET %s=%s (option=%r)", self._attr_unique_id, self._set_field, set_value, option)
         self._req_id += 1
         set_resp = await self._post_with_retry(url_set, {"id": self._req_id, "params": params}, headers, entry)

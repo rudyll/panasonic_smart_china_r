@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.3
+
+- 根据松下 App 解包代码，将 SmallERV 风量修正为低 / 高（`0 / 1`），并改用该机型实际的六组定时控制 payload。
+- 为 NewDCERV 增加独立控制 payload，不再发送该机型不存在的 DCERV 自定义送排风等字段；控制时保留 App 要求的当前室外 PM2.5 值。
+- 移除 NewDCERV 尚未确认值域的 DCERV 专属设置控件，避免误操作。
+- 根据 FV-25ZDP2C App 实机截图，将 LD6C 的 `runM=6` 显示文案修正为“自动ECO”。
+
+> SmallERV 与 NewDCERV 协议结构来自 App 解包代码，仍需对应型号完成设备端控制验证。
+
 ## 2.1.2
 
 - 将 FV-25ZDP2C（`LD6C`）改为松下 App 使用的 LD6C 专用状态与控制端点，不再借用 MidERV 接口。

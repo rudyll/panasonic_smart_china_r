@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.1.2-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.1.3-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -45,9 +45,19 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 #### LD6C（FV-25ZDP2C 等）
 
 - 使用 App 对应的 `ADevGetStatusLD6C` / `ADevSetStatusLD6C` 专用端点
-- 运行模式：热交换 / 内循环 / 自动 / 消毒 (`runM` 1/4/6/7)
+- 运行模式：热交换 / 内循环 / 自动ECO / 消毒 (`runM` 1/4/6/7)
 - 风量：静音 / 低 / 高 (`airVo` 0/1/2)
 - 开关机与假日模式使用 LD6C 完整控制 payload；其他设置待设备实测确认值域后开放
+
+#### SmallERV
+
+- 风量：低 / 高 (`airVo` 0/1)
+- 使用 App 对应的六组定时字段和 SmallERV 专用控制 payload
+
+#### NewDCERV
+
+- 运行模式与风量枚举沿用 DCERV（`runM` 48–53、`airVo` 0/1）
+- 使用 NewDCERV 独立控制 payload；滤网周期等设置待设备实测确认值域后开放
 
 #### DCERV-03（FY-35ZJD2C 等）
 
