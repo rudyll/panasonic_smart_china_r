@@ -32,7 +32,7 @@ URL_GET_DEV = "https://app.psmartcloud.com/App/UsrGetBindDevInfo"
 
 
 class FreshAirCoordinator(DataUpdateCoordinator):
-    """拉取新风机状态；LD6C 使用 MidERV 实时端点。"""
+    """拉取新风机状态；需要实时接口的机型按独立协议读取。"""
 
     def __init__(self, hass, entry):
         interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
@@ -60,10 +60,8 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return "MIDERV"
         if upper.startswith("NEWDCERV"):
             return "NEWDCERV"
-        # LD6C（FV-25ZDP2C 等）走 MidERV 端点和 profile，
-        # DCERV 端点对该机型只返回填充值（oaTeC=127、oaHumC=255 等）。
         if upper.startswith("LD6C"):
-            return "MIDERV"
+            return "LD6C"
         return "DCERV"
 
     def _build_payload(self):
@@ -77,7 +75,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         return family_id, real_family_id
 
     async def _fetch_ld6c_live(self):
-        """Fetch LD6C sensor data from its MidERV-compatible live endpoint."""
+        """Fetch LD6C state from the dedicated endpoint used by the app."""
         get_url, _ = get_dcerv_endpoints(
             self._entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
         )
@@ -133,10 +131,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return await resp.json()
 
     async def _async_update_data(self):
-        sub_type = self._entry.data.get(CONF_DEV_SUB_TYPE_ID, "")
-        is_ld6c = self.erv_profile == "MIDERV" and (
-            sub_type.upper().replace("-", "").startswith("LD6C")
-        )
+        is_ld6c = self.erv_profile == "LD6C"
         fetch = self._fetch_ld6c_live if is_ld6c else self._fetch
         try:
             data = await fetch()

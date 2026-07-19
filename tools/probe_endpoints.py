@@ -25,6 +25,7 @@ GET_ENDPOINTS = [
     "ADevGetStatusNewDCERV",
     "ADevGetStatusMidERV",
     "ADevGetStatusSmallERV",
+    "ADevGetStatusLD6C",
     "ADevGetStatusNeedsAP",
     "ADevGetStatusJDNeedsAP",
     "ADevGetStatusInfoERV",

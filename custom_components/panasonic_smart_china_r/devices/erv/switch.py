@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...api import generate_device_token, relogin_entry
 from ...const import CONF_DEVICE_ID, CONF_DEV_SUB_TYPE_ID, CONF_SSID, CONF_USR_ID, DOMAIN, get_dcerv_endpoints
-from . import build_dcerv_payload
+from . import ERV_PROFILES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +34,10 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._req_id = 0
+        profile = ERV_PROFILES.get(
+            coordinator.erv_profile or "DCERV", ERV_PROFILES["DCERV"]
+        )
+        self._payload_builder = profile["payload_builder"]
 
     async def _set_field(self, field: str, value: int) -> None:
         entry = self._entry
@@ -51,7 +55,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
             "Cookie": f"SSID={ssid}",
         }
 
-        params = build_dcerv_payload(device_id, token, usr_id, **{field: value})
+        params = self._payload_builder(device_id, token, usr_id, **{field: value})
         _LOGGER.debug("%s SET %s=%s", self._attr_unique_id, field, value)
 
         self._req_id += 1

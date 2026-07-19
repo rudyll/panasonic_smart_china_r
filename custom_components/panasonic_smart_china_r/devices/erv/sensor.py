@@ -38,6 +38,7 @@ SENSOR_SPECS: tuple[FreshAirSensorSpec, ...] = (
     FreshAirSensorSpec("saPMC",    "送风 PM2.5",       "sa_pm25",       SensorDeviceClass.PM25,        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER),
     FreshAirSensorSpec("raPMC",    "回风 PM2.5",       "ra_pm25",       SensorDeviceClass.PM25,        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER),
     FreshAirSensorSpec("oaHumC",   "室外湿度",         "oa_humidity",   SensorDeviceClass.HUMIDITY,    PERCENTAGE),
+    FreshAirSensorSpec("saHumC",   "送风湿度",         "sa_humidity",   SensorDeviceClass.HUMIDITY,    PERCENTAGE),
     FreshAirSensorSpec("raHumC",   "回风湿度",         "ra_humidity",   SensorDeviceClass.HUMIDITY,    PERCENTAGE),
     FreshAirSensorSpec("oaTeC",    "室外温度",         "oa_temp",       SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
     FreshAirSensorSpec("saTeC",    "送风温度",         "sa_temp",       SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
@@ -83,6 +84,12 @@ class PanasonicFreshAirSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         data = self.coordinator.data or {}
         raw = data.get(self._spec.key)
+        # LD6C App bean uses lower-camel abbreviations for these two fields,
+        # while older DCERV responses use the all-caps abbreviation spelling.
+        if raw is None:
+            alias = {"raCO2C": "raCo2C", "raTVC": "raTvC"}.get(self._spec.key)
+            if alias:
+                raw = data.get(alias)
         if raw is None or raw == "":
             return None
         try:

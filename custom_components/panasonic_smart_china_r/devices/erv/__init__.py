@@ -48,6 +48,20 @@ MIDERV_RUN_MODE_SET_MAP: dict[str, int] = {
 
 MIDERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 2: "中", 3: "高"}
 
+# LD6C（FV-25/35/50ZDP2C）映射来自松下 App 的 Ld6cBeanConvert。
+LD6C_RUN_MODE_GET_MAP: dict[int, str] = {
+    1: "热交换",
+    4: "内循环",
+    6: "自动",
+    7: "消毒",
+}
+
+LD6C_RUN_MODE_SET_MAP: dict[str, int] = {
+    label: value for value, label in LD6C_RUN_MODE_GET_MAP.items()
+}
+
+LD6C_AIR_VOLUME_MAP: dict[int, str] = {0: "静音", 1: "低", 2: "高"}
+
 # SmallERV 风量（值 1/3，跳过 2）
 SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 3: "高"}
 
@@ -104,6 +118,32 @@ def build_smallerv_payload(device_id: str, token: str, usr_id: str, **overrides)
         "tOffH": 127, "tOffMin": 127, "tOffSta": 255,
         "holM": 255,
     }
+    p.update(overrides)
+    return p
+
+
+def build_ld6c_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
+    """构造 App `Ld6cDevStateSetBean` 对应的完整 SET payload。"""
+    fields = (
+        "runSta", "runM", "airVo", "winDir", "heatM", "nanoe",
+        "preSet", "preM", "holM", "pmSen", "co2Sen", "tvSen",
+        "saFilCl", "oaFilCl", "resFilCl", "saFilEX", "oaFilEx",
+        "resFilEx", "saFilSet", "tSet", "slfSendW", "slfOutW",
+        "airBind", "clFilReset", "saFilExReset",
+        "oaFilExReset", "raFilExReset", "resFilExReset", "dehumid",
+        "humidSet", "breathLight",
+    )
+    p: dict = {
+        "deviceId": device_id,
+        "token": token,
+        "usrId": usr_id,
+        **{field: 255 for field in fields},
+    }
+    for i in range(1, 7):
+        for prefix in ("tSta", "tM", "tWind", "tSet", "tH", "tMin", "tWeek"):
+            p[f"{prefix}{i}"] = 255
+    for i in range(1, 11):
+        p[f"res{i}"] = 255
     p.update(overrides)
     return p
 
@@ -185,6 +225,15 @@ ERV_PROFILES: dict[str, dict] = {
         "has_run_mode":     True,
         "payload_builder":  build_miderv_payload,
         "extra_selects":    _MIDERV_EXTRA_SELECTS,
+    },
+    "LD6C": {
+        "run_mode_get_map": LD6C_RUN_MODE_GET_MAP,
+        "run_mode_set_map": LD6C_RUN_MODE_SET_MAP,
+        "air_volume_map":   LD6C_AIR_VOLUME_MAP,
+        "has_run_mode":     True,
+        "payload_builder":  build_ld6c_payload,
+        # 其他设置的值域需由专用端点实测后再开放，避免发送错误控制值。
+        "extra_selects":    [],
     },
     "SMALLERV": {
         "run_mode_get_map": {},
