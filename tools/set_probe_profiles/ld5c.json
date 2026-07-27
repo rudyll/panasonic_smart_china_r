@@ -1,0 +1,151 @@
+{
+  "name": "LD5C (FY-25ZDP1C)",
+  "deviceFilter": {
+    "devSubTypePrefix": "LD5C",
+    "category": "0800"
+  },
+  "getEndpoint": "ADevGetStatusLD6C",
+  "reportPrefix": "ld5c_set_report",
+  "schemas": {
+    "minimal": {
+      "skipFields": {},
+      "controlFields": {
+        "power": "runSta",
+        "mode": "runM",
+        "volume": "airVo"
+      },
+      "allowedValues": {
+        "power": [0, 1],
+        "mode": [0, 2, 5],
+        "volume": [1, 2, 3]
+      }
+    },
+    "ld5c": {
+      "skipFields": {
+        "runningStatus": 255,
+        "runningMode": 255,
+        "airVolume": 255,
+        "holidayMode": 255
+      },
+      "controlFields": {
+        "power": "runningStatus",
+        "mode": "runningMode",
+        "volume": "airVolume"
+      },
+      "allowedValues": {
+        "power": [0, 1],
+        "mode": [0, 2, 5],
+        "volume": [1, 2, 3]
+      }
+    },
+    "ld6c": {
+      "skipFields": {
+        "runSta": 255,
+        "runM": 255,
+        "airVo": 255,
+        "winDir": 255,
+        "heatM": 255,
+        "nanoe": 255,
+        "preSet": 255,
+        "preM": 255,
+        "holM": 255,
+        "pmSen": 255,
+        "co2Sen": 255,
+        "tvSen": 255,
+        "saFilCl": 255,
+        "oaFilCl": 255,
+        "resFilCl": 255,
+        "saFilEX": 255,
+        "oaFilEx": 255,
+        "resFilEx": 255,
+        "saFilSet": 255,
+        "tSet": 255,
+        "slfSendW": 255,
+        "slfOutW": 255,
+        "airBind": 255,
+        "clFilReset": 255,
+        "saFilExReset": 255,
+        "oaFilExReset": 255,
+        "raFilExReset": 255,
+        "resFilExReset": 255,
+        "dehumid": 255,
+        "humidSet": 255,
+        "breathLight": 255
+      },
+      "fieldSeries": [
+        {
+          "prefixes": ["tSta", "tM", "tWind", "tSet", "tH", "tMin", "tWeek"],
+          "start": 1,
+          "end": 6,
+          "value": 255
+        },
+        {
+          "prefixes": ["res"],
+          "start": 1,
+          "end": 10,
+          "value": 255
+        }
+      ],
+      "controlFields": {
+        "power": "runSta",
+        "mode": "runM",
+        "volume": "airVo"
+      },
+      "allowedValues": {
+        "power": [0, 1],
+        "mode": [0, 2, 5],
+        "volume": [1, 2, 3]
+      }
+    },
+    "dcerv": {
+      "skipFields": {
+        "runSta": 255,
+        "runM": 255,
+        "airVo": 255,
+        "preSet": 255,
+        "preM": 255,
+        "holM": 255,
+        "pmSen": 255,
+        "coSen": 255,
+        "tvSen": 255,
+        "userSupWind": 255,
+        "userExhWind": 255,
+        "aircJoi": 255,
+        "oaFilEx": 255
+      },
+      "fieldSeries": [
+        {
+          "prefixes": ["tSta", "tM", "tWind", "tSet", "tWeek"],
+          "start": 1,
+          "end": 6,
+          "value": 255
+        },
+        {
+          "prefixes": ["tH", "tMin"],
+          "start": 1,
+          "end": 6,
+          "value": 127
+        }
+      ],
+      "controlFields": {
+        "power": "runSta",
+        "mode": "runM",
+        "volume": "airVo"
+      },
+      "allowedValues": {
+        "power": [0, 1],
+        "mode": [0, 2, 5],
+        "volume": [1, 2, 3]
+      }
+    }
+  },
+  "probeMatrix": [
+    {"endpoint": "ADevSetStatusLD5C", "schema": "minimal"},
+    {"endpoint": "ADevSetStatusLD5C", "schema": "ld5c"},
+    {"endpoint": "ADevSetStatusLD5C", "schema": "ld6c"},
+    {"endpoint": "ADevSetStatusLD6C", "schema": "ld5c"},
+    {"endpoint": "ADevSetStatusLD6C", "schema": "ld6c"},
+    {"endpoint": "ADevSetStatusDCERV", "schema": "ld5c"},
+    {"endpoint": "ADevSetStatusDCERV", "schema": "dcerv"}
+  ]
+}

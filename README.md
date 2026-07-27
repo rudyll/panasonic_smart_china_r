@@ -191,11 +191,28 @@ PMS_USER='松下智家账号' PMS_PASS='密码' python3 tools/probe_endpoints.py
 
 命令会生成 `endpoint_report_*.json`，自动隐藏账号、会话、token 和设备唯一标识，可附加到 GitHub issue。请勿上传 `dump_*.json`，原始 dump 可能包含个人设备信息。完整步骤见 [Wiki：适配新设备型号](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号)。
 
-### LD5C 控制端点诊断
+### 通用 SET 协议探测
 
-FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，可使用专用工具分三步诊断：
+`tools/probe_set_endpoints.py` 可用于其他设备，不需要修改 Python 源码。复制一个 JSON profile，配置设备子类型/category、GET 端点、候选 SET 端点、payload 的 skip 字段、控制字段和值域即可：
 
 ```bash
+cp tools/set_probe_profiles/ld5c.json my_device.json
+# 编辑 my_device.json 后先做纯本地校验，不登录、不请求云端
+python3 tools/probe_set_endpoints.py --profile my_device.json validate
+
+# 校验通过后分阶段运行
+python3 tools/probe_set_endpoints.py --profile my_device.json inspect
+python3 tools/probe_set_endpoints.py --profile my_device.json probe
+```
+
+工具只允许访问 `https://app.psmartcloud.com/App/` 下格式合法且写在 profile `probeMatrix` 中的端点；真实控制只能使用同一矩阵中的 endpoint/schema 组合，并且控制值必须预先列入 schema 的 `allowedValues`。详细 profile 格式和安全约束见 [Wiki](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号#第四步验证-set-端点)。
+
+### LD5C 控制端点诊断
+
+FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，可使用通用工具的 LD5C 预设入口分三步诊断；原命令保持不变：
+
+```bash
+python3 tools/probe_ld5c_set.py validate
 python3 -m pip install requests
 export PMS_USER='松下智家账号'
 read -s PMS_PASS

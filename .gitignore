@@ -6,4 +6,4 @@ __pycache__/
 tools/dump_*.json
 tools/live_*.json
 endpoint_report_*.json
-ld5c_set_report_*.json
+*_set_report_*.json
