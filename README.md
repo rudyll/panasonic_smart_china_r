@@ -27,6 +27,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 | FY-35ZJD2C | DCERV-03 | 0800 | ✅ 实测可用 |
 | FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
 | FV-25ZDP2C | LD6C | 0800 | 🟡 专用状态接口与风量已获用户验证 |
+| FY-25ZDP1C | LD5C | 0800 | 🔍 读取已确认，控制协议诊断中（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
 | NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
@@ -171,6 +172,7 @@ token = sha512(f"{inner}_{suffix}")
 | DCERV-03 大型新风 | 0800 | ✅ 实测 | |
 | MidERV 中型新风 | 0800 | ✅ 用户确认 | FV-RZ06VD1 |
 | LD6C 新风 | 0800 | 🟡 待设备验证 | FV-25ZDP2C（使用 LD6C 专用接口） |
+| LD5C 新风 | 0800 | 🔍 控制协议诊断中 | FY-25ZDP1C（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
 | NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
@@ -188,6 +190,38 @@ PMS_USER='松下智家账号' PMS_PASS='密码' python3 tools/probe_endpoints.py
 ```
 
 命令会生成 `endpoint_report_*.json`，自动隐藏账号、会话、token 和设备唯一标识，可附加到 GitHub issue。请勿上传 `dump_*.json`，原始 dump 可能包含个人设备信息。完整步骤见 [Wiki：适配新设备型号](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号)。
+
+### LD5C 控制端点诊断
+
+FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，可使用专用工具分三步诊断：
+
+```bash
+python3 -m pip install requests
+
+# 1. 默认只读：读取 LD5C 的 statusAll 和 LD6C 实时状态
+PMS_USER='松下智家账号' PMS_PASS='密码' \
+  python3 tools/probe_ld5c_set.py inspect
+
+# 2. 只发送 skip/no-op payload，探测候选 SET 端点和 payload 结构
+PMS_USER='松下智家账号' PMS_PASS='密码' \
+  python3 tools/probe_ld5c_set.py probe
+```
+
+以上命令会生成 `ld5c_set_report_*.json` 脱敏报告，可附加到 [issue #11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)。工具不会打印或写入账号、密码、SSID、token 和完整 deviceId。
+
+只有维护者根据 probe 报告指定候选组合后，才执行真实控制测试。例如：
+
+```bash
+PMS_USER='松下智家账号' PMS_PASS='密码' \
+  python3 tools/probe_ld5c_set.py control \
+  --endpoint ADevSetStatusLD5C \
+  --schema ld5c \
+  --field power \
+  --value 0 \
+  --confirm-model FY-25ZDP1C
+```
+
+`control` 会真实改变设备状态，必须明确填写端点、payload schema、控制字段和值，并用设备列表中的完整型号确认目标。完成后工具等待 5 秒重新读取 `statusAll`，将请求响应及控制前后状态写入同一份脱敏报告。
 
 ---
 
