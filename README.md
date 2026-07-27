@@ -209,20 +209,21 @@ python3 tools/probe_set_endpoints.py --profile my_device.json probe
 
 ### LD5C 控制端点诊断
 
-FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，可使用通用工具的 LD5C 预设入口分三步诊断；原命令保持不变：
+FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，使用通用工具加载 LD5C profile 分三步诊断：
 
 ```bash
-python3 tools/probe_ld5c_set.py validate
+LD5C_PROFILE_PATH=tools/set_probe_profiles/ld5c.json
+python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" validate
 python3 -m pip install requests
 export PMS_USER='松下智家账号'
 read -s PMS_PASS
 export PMS_PASS
 
 # 1. 默认只读：读取 LD5C 的 statusAll 和 LD6C 实时状态
-python3 tools/probe_ld5c_set.py inspect
+python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" inspect
 
 # 2. 只发送 skip/no-op payload，探测候选 SET 端点和 payload 结构
-python3 tools/probe_ld5c_set.py probe
+python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" probe
 ```
 
 以上命令会生成 `ld5c_set_report_*.json` 脱敏报告，可附加到 [issue #11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)。工具不会打印或写入账号、密码、SSID、token 和完整 deviceId。
@@ -230,7 +231,7 @@ python3 tools/probe_ld5c_set.py probe
 只有维护者根据 probe 报告指定候选组合后，才执行真实控制测试。例如：
 
 ```bash
-python3 tools/probe_ld5c_set.py control \
+python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" control \
   --endpoint ADevSetStatusLD5C \
   --schema ld5c \
   --field power \
