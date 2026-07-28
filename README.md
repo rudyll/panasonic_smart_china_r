@@ -209,7 +209,7 @@ python3 tools/probe_set_endpoints.py --profile my_device.json probe
 
 ### LD5C 控制端点诊断
 
-FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。无需抓包，使用通用工具加载 LD5C profile 分三步诊断：
+FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。LD5C、LD6C 和 DCERV 候选均未形成有效控制，当前根据社区项目 [`dkong5ssss/panasonic_smart_china_erv`](https://github.com/dkong5ssss/panasonic_smart_china_erv) 的型号映射继续验证 MidERV SET 协议。无需抓包，使用通用工具加载 LD5C profile 分三步诊断：
 
 ```bash
 LD5C_PROFILE_PATH=tools/set_probe_profiles/ld5c.json
@@ -232,8 +232,8 @@ python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" probe
 
 ```bash
 python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" control \
-  --endpoint ADevSetStatusLD5C \
-  --schema ld5c \
+  --endpoint ADevSetStatusMidERV \
+  --schema miderv \
   --field power \
   --value 0 \
   --confirm-model FY-25ZDP1C

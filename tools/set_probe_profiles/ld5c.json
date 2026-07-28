@@ -97,6 +97,41 @@
         "volume": [1, 2, 3]
       }
     },
+    "miderv": {
+      "skipFields": {
+        "runSta": 255,
+        "runM": 255,
+        "airVo": 255,
+        "preM": 255,
+        "holM": 255,
+        "autoSen": 255,
+        "coldF": 255,
+        "saSet": 255,
+        "HeatM": 255,
+        "oaFilCl": 255,
+        "raFilCl": 255,
+        "raFilEx": 255,
+        "saFilCl": 255,
+        "oaFilEx": 255,
+        "saFilEx": 255,
+        "tOnH": 127,
+        "tOnMin": 127,
+        "tOnSta": 255,
+        "tOffH": 127,
+        "tOffMin": 127,
+        "tOffSta": 255
+      },
+      "controlFields": {
+        "power": "runSta",
+        "mode": "runM",
+        "volume": "airVo"
+      },
+      "allowedValues": {
+        "power": [0, 1],
+        "mode": [0, 2, 5],
+        "volume": [1, 2, 3]
+      }
+    },
     "dcerv": {
       "skipFields": {
         "runSta": 255,
@@ -145,6 +180,7 @@
     {"endpoint": "ADevSetStatusLD5C", "schema": "ld6c"},
     {"endpoint": "ADevSetStatusLD6C", "schema": "ld5c"},
     {"endpoint": "ADevSetStatusLD6C", "schema": "ld6c"},
+    {"endpoint": "ADevSetStatusMidERV", "schema": "miderv"},
     {"endpoint": "ADevSetStatusDCERV", "schema": "ld5c"},
     {"endpoint": "ADevSetStatusDCERV", "schema": "dcerv"}
   ]

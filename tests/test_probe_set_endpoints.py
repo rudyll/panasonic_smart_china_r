@@ -39,6 +39,10 @@ class ProbeSetEndpointsTest(unittest.TestCase):
             {"endpoint": "ADevSetStatusLD5C", "schema": "ld5c"},
             self.profile["probeMatrix"],
         )
+        self.assertIn(
+            {"endpoint": "ADevSetStatusMidERV", "schema": "miderv"},
+            self.profile["probeMatrix"],
+        )
 
     def test_validate_command_does_not_require_credentials(self):
         old_user = PROBE.os.environ.pop("PMS_USER", None)
@@ -86,6 +90,16 @@ class ProbeSetEndpointsTest(unittest.TestCase):
         )
         self.assertEqual(params["tH1"], 127)
         self.assertEqual(params["tMin6"], 127)
+
+    def test_miderv_schema_uses_protocol_sentinels(self):
+        params = PROBE.build_set_params(
+            self.profile, "miderv", "device", "token", "user", "power", 0
+        )
+        self.assertEqual(params["runSta"], 0)
+        self.assertEqual(params["runM"], 255)
+        self.assertEqual(params["airVo"], 255)
+        self.assertEqual(params["tOnH"], 127)
+        self.assertEqual(params["tOffMin"], 127)
 
     def test_control_value_must_be_explicitly_allowed(self):
         with self.assertRaisesRegex(ValueError, "允许值"):
