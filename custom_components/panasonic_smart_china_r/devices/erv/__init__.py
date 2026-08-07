@@ -62,6 +62,50 @@ LD6C_RUN_MODE_SET_MAP: dict[str, int] = {
 
 LD6C_AIR_VOLUME_MAP: dict[int, str] = {0: "静音", 1: "低", 2: "高"}
 
+# LD5C（FY-25ZDP1C）协议来自松下官方 Web 控制页
+# https://app.psmartcloud.com/ca/cn/0800/LD5C/index.html 的 js/common/api_utility.js，
+# 由 dkong5ssss 定位并经 FY-25ZDP1C 用户实机验证（本仓库 issue #11）。
+# 该页无证书固定，JS 源码即官方协议：Info 家族端点 + 长驼峰字段名。
+LD5C_RUN_MODE_GET_MAP: dict[int, str] = {
+    0: "热交换",
+    2: "内循环",
+    5: "外循环",
+}
+
+LD5C_RUN_MODE_SET_MAP: dict[str, int] = {
+    label: value for value, label in LD5C_RUN_MODE_GET_MAP.items()
+}
+
+LD5C_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 2: "中", 3: "高"}
+
+# Info GET 返回的长驼峰字段 → 实体代码使用的内部短字段名。
+LD5C_STATUS_FIELD_MAP: dict[str, str] = {
+    "runningStatus": "runSta",
+    "runningMode": "runM",
+    "airVolume": "airVo",
+    "holidayMode": "holM",
+    "oaPM25Cur": "oaPMC",
+    "saPM25Cur": "saPMC",
+    "raPM25Cur": "raPMC",
+    "oaTempCur": "oaTeC",
+    "saTempCur": "saTeC",
+    "raTempCur": "raTeC",
+    "oaHumidityCur": "oaHumC",
+    "saHumidityCur": "saHumC",
+    "raHumidityCur": "raHumC",
+}
+
+# 内部短字段名 → LD5C SET payload 的长驼峰字段名。
+LD5C_SET_FIELD_MAP: dict[str, str] = {
+    "runSta": "runningStatus",
+    "runM": "runningMode",
+    "airVo": "airVolume",
+    "holM": "holidayMode",
+}
+
+# Info GET 的传感器字段在本机型全部返回占位值，真实读数只能从 MidERV 端点取。
+LD5C_AUX_SENSOR_KEYS: tuple[str, ...] = ("oaPMC", "oaHumC", "oaTeC", "raFilExTL")
+
 # SmallERV 风量来自 App 的 MiniErvBeanConvert。
 SMALLERV_AIR_VOLUME_MAP: dict[int, str] = {0: "低", 1: "高"}
 
@@ -77,11 +121,13 @@ SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
         "oaPMC", "raPMC", "oaHumC", "oaTeC",
         "oaFilExTL", "saFilExTL", "raFilExTL", "resFilExTL",
     ),
+    # FY-25ZDP1C 实机只提供室外三项和回风滤网寿命，其余字段是占位值。
+    "LD5C": LD5C_AUX_SENSOR_KEYS,
 }
 
-# 这两个机型的实时传感器字段由各自专用状态端点提供；设备列表里的
-# statusAll 可能缺少送风温度、滤网寿命等字段。
-LIVE_STATUS_PROFILES = frozenset({"DCERV", "LD6C"})
+# 这些机型的实时状态由各自专用端点提供；设备列表里的 statusAll 是云端缓存，
+# 控制命令执行后不会刷新，也可能缺少送风温度、滤网寿命等字段。
+LIVE_STATUS_PROFILES = frozenset({"DCERV", "LD6C", "LD5C"})
 
 # 占位值必须按字段判断，不能全局过滤：例如 PM2.5 的 255 可能是真实读数，
 # 而温度的 127、湿度的 255、PM2.5/CO₂ 的 65535 是协议无效值。
@@ -221,6 +267,97 @@ def build_ld6c_payload(device_id: str, token: str, usr_id: str, **overrides) -> 
     return p
 
 
+def build_ld5c_payload(device_id: str, token: str, usr_id: str, **overrides) -> dict:
+    """构造官方 Web 控制页 `ADevSetStatusInfoLD5C` 的完整 SET payload。
+
+    与其他机型不同，Info 家族端点把 usrId/deviceId/token 放在请求体顶层而不是
+    params 里，所以这里只返回控制字段；身份字段由 `build_set_body` 补上。
+    overrides 用内部短字段名（runSta/runM/airVo/holM），这里翻译成官方长字段名。
+    """
+    fields = (
+        "runningStatus", "runningMode", "airVolume", "heatingMode",
+        "pPressureMode", "holidayMode", "autoSensitivity", "oaFilterExist",
+        "saFilterClCycle", "oaFilterClCycle", "saFilterExCycle",
+        "oaFilterExCycle", "saFilterExist",
+        "onTimerSetting", "offTimerSetting",
+    )
+    p: dict = {field: 255 for field in fields}
+    # 定时器的时/分用 127 表示保持不变。
+    for field in ("onTimerHour", "onTimerMinute", "offTimerHour", "offTimerMinute"):
+        p[field] = 127
+    for field, value in overrides.items():
+        p[LD5C_SET_FIELD_MAP.get(field, field)] = value
+    return p
+
+
+def normalize_status(profile_name: str, results: dict) -> dict:
+    """把专用端点返回的字段名翻译成实体代码使用的内部字段名。"""
+    if profile_name != "LD5C":
+        return results
+    normalized = {
+        key: value
+        for key, value in results.items()
+        if key not in LD5C_STATUS_FIELD_MAP
+    }
+    for external, internal in LD5C_STATUS_FIELD_MAP.items():
+        if external in results:
+            normalized[internal] = results[external]
+    return normalized
+
+
+def build_status_body(profile: dict, request_id: int, device_id: str, token: str, usr_id: str) -> dict:
+    """按 profile 的约定构造状态查询请求体。"""
+    if profile.get("identity_top_level"):
+        return {
+            "id": request_id,
+            "usrId": usr_id,
+            "deviceId": device_id,
+            "token": token,
+        }
+    return {
+        "id": request_id,
+        "uiVersion": 4.0,
+        "params": {"usrId": usr_id, "deviceId": device_id, "token": token},
+    }
+
+
+def build_set_body(profile: dict, request_id: int, device_id: str, token: str, usr_id: str, params: dict) -> dict:
+    """按 profile 的约定构造控制请求体。
+
+    profile 里写死 `set_request_id` 的机型（LD5C）用固定值，与官方 Web 控制页
+    发出的请求保持一致；其余机型沿用调用方的自增序号。
+    """
+    body_id = profile.get("set_request_id", request_id)
+    if profile.get("identity_top_level"):
+        return {
+            "id": body_id,
+            "usrId": usr_id,
+            "deviceId": device_id,
+            "token": token,
+            "params": params,
+        }
+    return {"id": body_id, "params": params}
+
+
+def build_headers(profile: dict, ssid: str) -> dict:
+    """构造请求头；Info 家族端点还需要 Web 控制页使用的 xtoken 头。"""
+    headers = {
+        "User-Agent": "SmartApp",
+        "Content-Type": "application/json",
+        "Cookie": f"SSID={ssid}",
+    }
+    if profile.get("auth_xtoken"):
+        headers["xtoken"] = f"SSID={ssid}"
+    return headers
+
+
+def refresh_ssid_headers(headers: dict, ssid: str) -> None:
+    """重登后就地更新请求头里的所有 SSID 字段。"""
+    headers["Cookie"] = f"SSID={ssid}"
+    if "xtoken" in headers:
+        headers["xtoken"] = f"SSID={ssid}"
+
+
 def detect_erv_profile(status_data: dict) -> str:
     """根据 GET 响应字段特征识别 ERV 机型。"""
     if "filSet" in status_data or "oaFilExPM" in status_data:
@@ -309,6 +446,22 @@ ERV_PROFILES: dict[str, dict] = {
         "payload_builder":  build_ld6c_payload,
         # 其他设置的值域需由专用端点实测后再开放，避免发送错误控制值。
         "extra_selects":    [],
+    },
+    "LD5C": {
+        "run_mode_get_map": LD5C_RUN_MODE_GET_MAP,
+        "run_mode_set_map": LD5C_RUN_MODE_SET_MAP,
+        "air_volume_map":   LD5C_AIR_VOLUME_MAP,
+        "has_run_mode":     True,
+        "payload_builder":  build_ld5c_payload,
+        "extra_selects":    [],
+        # Info 家族端点的请求形状与其他机型不同。
+        "identity_top_level": True,
+        "auth_xtoken":        True,
+        "status_request_id":  2,
+        "set_request_id":     0,
+        "aux_sensor_keys":    LD5C_AUX_SENSOR_KEYS,
+        # 假日模式在 SET bean 里有对应字段，但尚未实机验证，先不暴露控件。
+        "has_holiday":        False,
     },
     "SMALLERV": {
         "run_mode_get_map": {},

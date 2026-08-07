@@ -79,6 +79,84 @@ class ErvProtocolTest(unittest.TestCase):
         self.assertNotIn("saHumC", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
         self.assertNotIn("resFilExTL", ERV.SENSOR_KEYS_BY_PROFILE["DCERV"])
 
+    def test_ld5c_payload_uses_official_web_page_field_names(self):
+        payload = ERV.build_ld5c_payload("device", "token", "user", runSta=0)
+
+        # 内部短字段名要翻译成官方 Web 控制页的长驼峰名。
+        self.assertEqual(payload["runningStatus"], 0)
+        self.assertNotIn("runSta", payload)
+        self.assertEqual(payload["runningMode"], 255)
+        self.assertEqual(payload["airVolume"], 255)
+        self.assertEqual(payload["onTimerHour"], 127)
+        self.assertEqual(payload["offTimerMinute"], 127)
+        self.assertEqual(payload["onTimerSetting"], 255)
+        # 身份字段由请求体顶层携带，不能出现在 params 里。
+        self.assertNotIn("deviceId", payload)
+        self.assertNotIn("token", payload)
+        self.assertNotIn("usrId", payload)
+
+    def test_ld5c_status_fields_map_to_internal_names(self):
+        status = ERV.normalize_status(
+            "LD5C",
+            {"runningStatus": "1", "runningMode": "2", "airVolume": "3", "oaTempCur": 26},
+        )
+        self.assertEqual(status["runSta"], "1")
+        self.assertEqual(status["runM"], "2")
+        self.assertEqual(status["airVo"], "3")
+        self.assertEqual(status["oaTeC"], 26)
+        self.assertNotIn("runningStatus", status)
+
+    def test_normalize_status_is_a_no_op_for_short_field_profiles(self):
+        results = {"runSta": 1, "airVo": 2}
+        self.assertEqual(ERV.normalize_status("LD6C", results), results)
+
+    def test_ld5c_info_endpoints_use_top_level_identity_and_xtoken(self):
+        profile = ERV.ERV_PROFILES["LD5C"]
+
+        # LD5C 的请求序号固定为 0，与官方 Web 控制页一致，不跟随调用方自增。
+        body = ERV.build_set_body(profile, 7, "device", "token", "user", {"runningStatus": 0})
+        self.assertEqual(body["id"], 0)
+        self.assertEqual(body["usrId"], "user")
+        self.assertEqual(body["deviceId"], "device")
+        self.assertEqual(body["token"], "token")
+        self.assertEqual(body["params"], {"runningStatus": 0})
+
+        status_body = ERV.build_status_body(profile, 2, "device", "token", "user")
+        self.assertEqual(status_body["deviceId"], "device")
+        self.assertNotIn("params", status_body)
+
+        headers = ERV.build_headers(profile, "abc")
+        self.assertEqual(headers["xtoken"], "SSID=abc")
+        ERV.refresh_ssid_headers(headers, "xyz")
+        self.assertEqual(headers["xtoken"], "SSID=xyz")
+        self.assertEqual(headers["Cookie"], "SSID=xyz")
+
+    def test_other_profiles_keep_the_nested_params_request_shape(self):
+        profile = ERV.ERV_PROFILES["LD6C"]
+
+        body = ERV.build_set_body(profile, 1, "device", "token", "user", {"runSta": 0})
+        self.assertEqual(body, {"id": 1, "params": {"runSta": 0}})
+
+        status_body = ERV.build_status_body(profile, 1, "device", "token", "user")
+        self.assertEqual(status_body["params"]["deviceId"], "device")
+        self.assertEqual(status_body["uiVersion"], 4.0)
+
+        headers = ERV.build_headers(profile, "abc")
+        self.assertNotIn("xtoken", headers)
+
+    def test_ld5c_reads_live_state_and_takes_sensors_from_aux_endpoint(self):
+        self.assertIn("LD5C", ERV.LIVE_STATUS_PROFILES)
+        self.assertEqual(
+            set(ERV.SENSOR_KEYS_BY_PROFILE["LD5C"]),
+            {"oaPMC", "oaHumC", "oaTeC", "raFilExTL"},
+        )
+        self.assertEqual(
+            ERV.ERV_PROFILES["LD5C"]["aux_sensor_keys"],
+            ERV.SENSOR_KEYS_BY_PROFILE["LD5C"],
+        )
+        self.assertEqual(ERV.LD5C_RUN_MODE_GET_MAP, {0: "热交换", 2: "内循环", 5: "外循环"})
+        self.assertEqual(ERV.LD5C_AIR_VOLUME_MAP, {1: "低", 2: "中", 3: "高"})
+
     def test_sensor_sentinels_are_field_specific(self):
         self.assertTrue(ERV.is_invalid_sensor_value("saPMC", 65535))
         self.assertTrue(ERV.is_invalid_sensor_value("raCO2C", "65535"))

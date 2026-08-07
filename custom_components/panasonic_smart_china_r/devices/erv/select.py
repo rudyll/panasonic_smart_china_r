@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...api import generate_device_token, relogin_entry
 from ...const import CONF_DEVICE_ID, CONF_DEV_SUB_TYPE_ID, CONF_SSID, CONF_USR_ID, DOMAIN, get_dcerv_endpoints
-from . import ERV_PROFILES
+from . import ERV_PROFILES, build_headers, build_set_body, refresh_ssid_headers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._get_map: dict[int, str] = {}
+        self._profile = profile
         self._payload_builder = profile["payload_builder"]
         self._copy_status_fields = profile.get("copy_status_fields", ())
         device_id = entry.data[CONF_DEVICE_ID]
@@ -89,11 +90,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
         ssid = entry.data.get(CONF_SSID, "")
         usr_id = entry.data.get(CONF_USR_ID, "")
         _, url_set = get_dcerv_endpoints(entry.data.get(CONF_DEV_SUB_TYPE_ID, ""))
-        headers = {
-            "User-Agent": "SmartApp",
-            "Content-Type": "application/json",
-            "Cookie": f"SSID={ssid}",
-        }
+        headers = build_headers(self._profile, ssid)
 
         status = self.coordinator.data or {}
         payload_overrides = {
@@ -105,7 +102,8 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
         params = self._payload_builder(device_id, token, usr_id, **payload_overrides)
         _LOGGER.debug("%s SET %s=%s (option=%r)", self._attr_unique_id, self._set_field, set_value, option)
         self._req_id += 1
-        set_resp = await self._post_with_retry(url_set, {"id": self._req_id, "params": params}, headers, entry)
+        body = build_set_body(self._profile, self._req_id, device_id, token, usr_id, params)
+        set_resp = await self._post_with_retry(url_set, body, headers, entry)
         _LOGGER.debug("%s SET response: %s", self._attr_unique_id, set_resp)
         await asyncio.sleep(5)
         await self.coordinator.async_request_refresh()
@@ -124,7 +122,7 @@ class _FreshAirSelect(CoordinatorEntity, SelectEntity):
                     code = str(err_obj.get("code"))
                     if code in {"3003", "3004", "4102"}:
                         new_ssid = await relogin_entry(self.hass, entry)
-                        headers["Cookie"] = f"SSID={new_ssid}"
+                        refresh_ssid_headers(headers, new_ssid)
                         continue
                     raise HomeAssistantError(f"请求失败: {err_obj.get('message', err_obj)}")
                 return j

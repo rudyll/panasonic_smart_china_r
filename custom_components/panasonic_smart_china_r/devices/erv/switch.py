@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...api import generate_device_token, relogin_entry
 from ...const import CONF_DEVICE_ID, CONF_DEV_SUB_TYPE_ID, CONF_SSID, CONF_USR_ID, DOMAIN, get_dcerv_endpoints
-from . import ERV_PROFILES
+from . import ERV_PROFILES, build_headers, build_set_body, refresh_ssid_headers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,10 +22,11 @@ _MAX_RETRIES = 3
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([
-        FreshAirPowerSwitch(coordinator, entry),
-        FreshAirHolidaySwitch(coordinator, entry),
-    ])
+    profile = ERV_PROFILES.get(coordinator.erv_profile or "DCERV", ERV_PROFILES["DCERV"])
+    entities = [FreshAirPowerSwitch(coordinator, entry)]
+    if profile.get("has_holiday", True):
+        entities.append(FreshAirHolidaySwitch(coordinator, entry))
+    async_add_entities(entities)
 
 
 class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
@@ -37,6 +38,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
         profile = ERV_PROFILES.get(
             coordinator.erv_profile or "DCERV", ERV_PROFILES["DCERV"]
         )
+        self._profile = profile
         self._payload_builder = profile["payload_builder"]
         self._copy_status_fields = profile.get("copy_status_fields", ())
 
@@ -50,11 +52,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
         ssid = entry.data.get(CONF_SSID, "")
         usr_id = entry.data.get(CONF_USR_ID, "")
         _, url_set = get_dcerv_endpoints(entry.data.get(CONF_DEV_SUB_TYPE_ID, ""))
-        headers = {
-            "User-Agent": "SmartApp",
-            "Content-Type": "application/json",
-            "Cookie": f"SSID={ssid}",
-        }
+        headers = build_headers(self._profile, ssid)
 
         status = self.coordinator.data or {}
         payload_overrides = {
@@ -67,7 +65,8 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
         _LOGGER.debug("%s SET %s=%s", self._attr_unique_id, field, value)
 
         self._req_id += 1
-        set_resp = await self._request(url_set, {"id": self._req_id, "params": params}, headers, entry)
+        body = build_set_body(self._profile, self._req_id, device_id, token, usr_id, params)
+        set_resp = await self._request(url_set, body, headers, entry)
         _LOGGER.debug("%s SET response: %s", self._attr_unique_id, set_resp)
         await asyncio.sleep(5)
         await self.coordinator.async_request_refresh()
@@ -86,7 +85,7 @@ class _FreshAirSwitchBase(CoordinatorEntity, SwitchEntity):
                     code = str(err_obj.get("code"))
                     if code in {"3003", "3004", "4102"}:
                         new_ssid = await relogin_entry(self.hass, entry)
-                        headers["Cookie"] = f"SSID={new_ssid}"
+                        refresh_ssid_headers(headers, new_ssid)
                         continue
                     raise HomeAssistantError(f"请求失败: {err_obj.get('message', err_obj)}")
                 return j

@@ -22,10 +22,17 @@ from .const import (
     CONF_USR_ID,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    LD5C_AUX_GET_URL,
     get_dcerv_endpoints,
 )
 from .exceptions import LoginFailed, ReloginCooldown
-from .devices.erv import LIVE_STATUS_PROFILES
+from .devices.erv import (
+    ERV_PROFILES,
+    LIVE_STATUS_PROFILES,
+    build_headers,
+    build_status_body,
+    normalize_status,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,9 +68,15 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return "MIDERV"
         if upper.startswith("NEWDCERV"):
             return "NEWDCERV"
+        if upper.startswith("LD5C"):
+            return "LD5C"
         if upper.startswith("LD6C"):
             return "LD6C"
         return "DCERV"
+
+    @property
+    def _profile(self) -> dict:
+        return ERV_PROFILES.get(self.erv_profile or "DCERV", ERV_PROFILES["DCERV"])
 
     def _build_payload(self):
         session_cache = (self.hass.data.get(DOMAIN) or {}).get("session") or {}
@@ -84,26 +97,53 @@ class FreshAirCoordinator(DataUpdateCoordinator):
         if token is None:
             raise UpdateFailed("Cannot generate device token for live status fetch")
 
-        payload = {
-            "id": 1,
-            "uiVersion": 4.0,
-            "params": {
-                "usrId": self._usr_id,
-                "deviceId": self._device_id,
-                "token": token,
-            },
-        }
-        headers = {
-            "User-Agent": "SmartApp",
-            "Content-Type": "application/json",
-            "Cookie": f"SSID={self._ssid}",
-        }
+        profile = self._profile
+        payload = build_status_body(
+            profile,
+            profile.get("status_request_id", 1),
+            self._device_id,
+            token,
+            self._usr_id,
+        )
+        headers = build_headers(profile, self._ssid)
         session = async_get_clientsession(self.hass)
         async with async_timeout.timeout(10):
             resp = await session.post(
                 get_url, json=payload, headers=headers, ssl=False
             )
             return await resp.json()
+
+    async def _fetch_aux_sensors(self, keys) -> dict:
+        """Fetch the sensor values the live endpoint does not provide (LD5C)."""
+        token = generate_device_token(self._device_id)
+        if token is None:
+            return {}
+
+        payload = {
+            "id": 1,
+            "params": {
+                "usrId": self._usr_id,
+                "deviceId": self._device_id,
+                "token": token,
+            },
+        }
+        # 辅助端点走常规协议，不需要 Info 家族的 xtoken 头，所以传空 profile。
+        headers = build_headers({}, self._ssid)
+        session = async_get_clientsession(self.hass)
+        try:
+            async with async_timeout.timeout(10):
+                resp = await session.post(
+                    LD5C_AUX_GET_URL, json=payload, headers=headers, ssl=False
+                )
+                data = await resp.json()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Aux sensor fetch failed for %s: %s", self._device_id, err)
+            return {}
+
+        results = data.get("results") if isinstance(data, dict) else None
+        if not isinstance(results, dict):
+            return {}
+        return {key: value for key, value in results.items() if key in keys}
 
     async def _fetch(self):
         family_id, real_family_id = self._build_payload()
@@ -176,11 +216,16 @@ class FreshAirCoordinator(DataUpdateCoordinator):
 
         if uses_live_status:
             results = data.get("results") if isinstance(data, dict) else None
-            if isinstance(results, dict) and results:
-                return results
-            raise UpdateFailed(
-                f"{self.erv_profile} live response has no status results"
-            )
+            if not isinstance(results, dict) or not results:
+                raise UpdateFailed(
+                    f"{self.erv_profile} live response has no status results"
+                )
+            status = normalize_status(self.erv_profile, results)
+            # 部分机型（LD5C）的实时端点只有控制字段有效，传感器要另取一次。
+            aux_keys = self._profile.get("aux_sensor_keys")
+            if aux_keys:
+                status.update(await self._fetch_aux_sensors(aux_keys))
+            return status
 
         status_all = None
         for dev in data.get("results", {}).get("devList", []):

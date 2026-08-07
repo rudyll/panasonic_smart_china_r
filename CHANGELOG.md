@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0
+
+- 新增 LD5C（FY-25ZDP1C）支持：开关机、运行模式（热交换 / 内循环 / 外循环）、风量（低 / 中 / 高）现在可以真实控制。
+- LD5C 改用松下官方 Web 控制页使用的 `ADevSetStatusInfoLD5C` / `ADevGetStatusInfoLD5C` 端点。这类 Info 家族端点把 `usrId`/`deviceId`/`token` 放在请求体顶层，另外需要 `xtoken` 认证头，payload 用 `runningStatus`/`runningMode`/`airVolume` 等长字段名。此前的 LD5C / LD6C / DCERV / MidERV 端点组合都会返回 `todoId` 但设备不动作。
+- LD5C 的控制状态从实时端点读取，不再依赖设备列表的 `statusAll` 缓存——该缓存在控制后不刷新，会让界面几秒后跳回旧状态。
+- LD5C 传感器只创建实机确认存在的四项（室外 PM2.5、室外温度、室外湿度、回风滤网剩余寿命），数据从 MidERV 端点读取并与控制字段合并。
+- 文档新增「官方 Web 控制页」适配捷径：该页面无证书固定，其 JS 源码即官方协议，比反编译 APK 或抓包更快；并说明 `Info` 端点家族的命名和请求形状差异。
+
+> 感谢 [@dkong5ssss](https://github.com/dkong5ssss/panasonic_smart_china_erv) 定位 LD5C 真实端点并公开完整协议，感谢 [@accpowered](https://github.com/accpowered) 持续提供 FY-25ZDP1C 实机测试报告。协议细节见 [issue #11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)。
+>
+> LD5C 的假日模式在 SET 字段表里有对应字段但尚未实机验证，本版本暂不创建该控件。
+
 ## 2.1.6
 
 - DCERV 改用 App 对应的 `ADevGetStatusDCERV` 专用端点读取实时状态，修复送风温度和滤网寿命因设备列表状态字段缺失而显示“未知”的问题。

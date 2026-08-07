@@ -5,7 +5,7 @@
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
-本项目基于 [mcdona1d/panasonic_smart_china](https://github.com/mcdona1d/panasonic_smart_china) 开发，在此基础上加入了新风设备支持，并大幅扩展了云端通信逻辑。感谢 arthurfsy 最早公开松下云端登录算法，感谢 Hassbian 论坛 omegaojian 对 MidERV 设备的抓包分析，为本项目逆向 DCERV-03 端点提供了关键线索。MidERV 与 SmallERV 机型的 payload 字段、运行模式值域和风量档位数据，参考自社区 [dkong5ssss/panasonic_smart_china_erv](https://github.com/dkong5ssss/panasonic_smart_china_erv) 项目，感谢该项目作者的实测和整理。
+本项目基于 [mcdona1d/panasonic_smart_china](https://github.com/mcdona1d/panasonic_smart_china) 开发，在此基础上加入了新风设备支持，并大幅扩展了云端通信逻辑。感谢 arthurfsy 最早公开松下云端登录算法，感谢 Hassbian 论坛 omegaojian 对 MidERV 设备的抓包分析，为本项目逆向 DCERV-03 端点提供了关键线索。MidERV 与 SmallERV 机型的 payload 字段、运行模式值域和风量档位数据，参考自社区 [dkong5ssss/panasonic_smart_china_erv](https://github.com/dkong5ssss/panasonic_smart_china_erv) 项目，感谢该项目作者的实测和整理；LD5C（FY-25ZDP1C）的真实控制端点也由该项目作者从松下官方 Web 控制页的 JS 源码中定位并公开，另感谢 [accpowered](https://github.com/accpowered) 全程提供 FY-25ZDP1C 实机测试报告。
 
 ---
 
@@ -18,7 +18,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 ### 新风换气机（category `0800` / `0850`）
 
-集成会根据松下设备列表返回的 `devSubTypeId` 自动选择机型协议和云端端点（DCERV / NewDCERV / MidERV / SmallERV / LD6C），无需手动配置。旧版配置缺少该字段时，集成会在加载时从设备列表补全。
+集成会根据松下设备列表返回的 `devSubTypeId` 自动选择机型协议和云端端点（DCERV / NewDCERV / MidERV / SmallERV / LD5C / LD6C），无需手动配置。旧版配置缺少该字段时，集成会在加载时从设备列表补全。
 
 #### 机型支持状态
 
@@ -27,7 +27,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 | FY-35ZJD2C | DCERV-03 | 0800 | ✅ 实测可用 |
 | FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
 | FV-25ZDP2C | LD6C | 0800 | 🟡 专用状态接口与风量已获用户验证 |
-| FY-25ZDP1C | LD5C | 0800 | 🔍 读取已确认，控制协议诊断中（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
+| FY-25ZDP1C | LD5C | 0800 | ✅ 控制协议已确认并实机验证（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
 | NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
@@ -53,6 +53,15 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 - 不创建设备以 `127 / 255 / 65535` 占位的送风 PM2.5、CO₂、TVOC 和送风/回风温湿度实体
 
 > 从 2.1.3 或更早版本升级后，旧实体可能残留为“不可用”。要彻底清理，请升级并重启后删除该设备对应的集成配置项，再重新添加设备。
+
+#### LD5C（FY-25ZDP1C）
+
+- 使用松下官方 Web 控制页对应的 `ADevGetStatusInfoLD5C` / `ADevSetStatusInfoLD5C` 端点
+- 运行模式：热交换 / 内循环 / 外循环 (`runningMode` 0/2/5)
+- 风量：低 / 中 / 高 (`airVolume` 1/2/3)
+- 控制状态从实时端点读取，不走设备列表缓存，操作后界面不会跳回旧状态
+- 传感器：室外 PM2.5、室外温度、室外湿度、回风滤网剩余寿命（从 MidERV 端点读取并合并）
+- 假日模式字段存在但未实机验证，暂不创建控件
 
 #### SmallERV
 
@@ -172,7 +181,7 @@ token = sha512(f"{inner}_{suffix}")
 | DCERV-03 大型新风 | 0800 | ✅ 实测 | |
 | MidERV 中型新风 | 0800 | ✅ 用户确认 | FV-RZ06VD1 |
 | LD6C 新风 | 0800 | 🟡 待设备验证 | FV-25ZDP2C（使用 LD6C 专用接口） |
-| LD5C 新风 | 0800 | 🔍 控制协议诊断中 | FY-25ZDP1C（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
+| LD5C 新风 | 0800 | ✅ 用户确认 | FY-25ZDP1C（使用官方 Web 页的 Info 端点，[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
 | NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
@@ -207,39 +216,15 @@ python3 tools/probe_set_endpoints.py --profile my_device.json probe
 
 工具只允许访问 `https://app.psmartcloud.com/App/` 下格式合法且写在 profile `probeMatrix` 中的端点；真实控制只能使用同一矩阵中的 endpoint/schema 组合，并且控制值必须预先列入 schema 的 `allowedValues`。详细 profile 格式和安全约束见 [Wiki](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号#第四步验证-set-端点)。
 
-### LD5C 控制端点诊断
+### LD5C 控制端点诊断（已完成）
 
-FY-25ZDP1C（`devSubTypeId=LD5C`）已经确认可通过 LD6C 状态端点读取室外传感器，但 SET 端点和 payload 结构尚未确认。LD5C、LD6C 和 DCERV 候选均未形成有效控制，当前根据社区项目 [`dkong5ssss/panasonic_smart_china_erv`](https://github.com/dkong5ssss/panasonic_smart_china_erv) 的型号映射继续验证 MidERV SET 协议。无需抓包，使用通用工具加载 LD5C profile 分三步诊断：
+FY-25ZDP1C（`devSubTypeId=LD5C`）的控制协议已经确认并实机验证，普通用户升级插件即可，不需要再跑探测工具。
 
-```bash
-LD5C_PROFILE_PATH=tools/set_probe_profiles/ld5c.json
-python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" validate
-python3 -m pip install requests
-export PMS_USER='松下智家账号'
-read -s PMS_PASS
-export PMS_PASS
+真实端点是松下官方 Web 控制页（`ca/cn/0800/LD5C/`）使用的 `ADevSetStatusInfoLD5C` / `ADevGetStatusInfoLD5C`——注意中间的 `Info`，此前探测矩阵里的 `ADevSetStatusLD5C` 返回 404 正是因为漏了这一段。`ADevSetStatusLD6C`、`ADevSetStatusDCERV`、`ADevSetStatusMidERV` 都会返回 `todoId` 但设备不动作：**云端返回 `todoId` 只代表请求入队，不代表设备执行**。
 
-# 1. 默认只读：读取 LD5C 的 statusAll 和 LD6C 实时状态
-python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" inspect
+这条线索由 [dkong5ssss](https://github.com/dkong5ssss/panasonic_smart_china_erv) 从官方 Web 页 JS 源码中定位，[accpowered](https://github.com/accpowered) 提供了本仓库 issue 全程的 FY-25ZDP1C 实机报告。完整协议和「Info 端点家族」的通用规律见 [Wiki：适配新设备型号](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号)。
 
-# 2. 只发送 skip/no-op payload，探测候选 SET 端点和 payload 结构
-python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" probe
-```
-
-以上命令会生成 `ld5c_set_report_*.json` 脱敏报告，可附加到 [issue #11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)。工具不会打印或写入账号、密码、SSID、token 和完整 deviceId。
-
-只有维护者根据 probe 报告指定候选组合后，才执行真实控制测试。例如：
-
-```bash
-python3 tools/probe_set_endpoints.py --profile "$LD5C_PROFILE_PATH" control \
-  --endpoint ADevSetStatusMidERV \
-  --schema miderv \
-  --field power \
-  --value 0 \
-  --confirm-model FY-25ZDP1C
-```
-
-`control` 会真实改变设备状态，必须明确填写端点、payload schema、控制字段和值，并用设备列表中的完整型号确认目标。完成后工具等待 5 秒重新读取 `statusAll`，将请求响应及控制前后状态写入同一份脱敏报告。
+其他机型如需收敛 SET 协议，参考 `tools/set_probe_profiles/ld5c.json` 编写自己的 profile 后按上文流程运行。
 
 ---
 

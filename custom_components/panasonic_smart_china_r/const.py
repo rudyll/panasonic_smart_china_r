@@ -43,8 +43,13 @@ _DCERV_ENDPOINT_MAP: dict[str, tuple[str, str]] = {
     "NEWDCERV": (_BASE_URL + "ADevGetStatusNewDCERV", _BASE_URL + "ADevSetStatusNewDCERV"),
     "MIDERV":   (_BASE_URL + "ADevGetStatusMidERV",   _BASE_URL + "ADevSetStatusMidERV"),
     "SMALLERV": (_BASE_URL + "ADevGetStatusSmallERV", _BASE_URL + "ADevSetStatusSmallERV"),
+    "LD5C":     (_BASE_URL + "ADevGetStatusInfoLD5C", _BASE_URL + "ADevSetStatusInfoLD5C"),
     "LD6C":     (_BASE_URL + "ADevGetStatusLD6C",     _BASE_URL + "ADevSetStatusLD6C"),
 }
+
+# LD5C 的 Info 端点只返回有效的控制字段，传感器字段全是占位值；
+# 真实读数来自 MidERV 端点，轮询时按白名单合并。
+LD5C_AUX_GET_URL = _BASE_URL + "ADevGetStatusMidERV"
 
 
 def get_dcerv_endpoints(dev_sub_type_id: str) -> tuple[str, str]:
