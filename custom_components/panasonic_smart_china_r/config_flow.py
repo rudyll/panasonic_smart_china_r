@@ -33,6 +33,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DEVICE_KIND_AC,
     DEVICE_KIND_FRESH_AIR,
+    DEVICE_KIND_FRIDGE,
     DOMAIN,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
@@ -157,6 +158,8 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 label = f"[新风] {label}"
             elif kind == DEVICE_KIND_AC:
                 label = f"[空调] {label}"
+            elif kind == DEVICE_KIND_FRIDGE:
+                label = f"[冰箱] {label}"
             else:
                 label = f"[未支持] {label}"
             available_devices[did] = label
@@ -173,6 +176,9 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if self._selected_dev_kind == DEVICE_KIND_FRESH_AIR:
                 return await self._create_fresh_air_entry()
+
+            if self._selected_dev_kind == DEVICE_KIND_FRIDGE:
+                return await self._create_fridge_entry()
 
             errors["base"] = "unsupported_device"
 
@@ -242,6 +248,27 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_DEVICE_ID: self._selected_dev_id,
                 CONF_TOKEN: token,
                 CONF_DEVICE_KIND: DEVICE_KIND_FRESH_AIR,
+                CONF_DEV_SUB_TYPE_ID: dev_sub_type_id,
+                "familyId": self._login_data.get("familyId"),
+                "realFamilyId": self._login_data.get("realFamilyId"),
+            },
+        )
+
+    async def _create_fridge_entry(self):
+        token = generate_device_token(self._selected_dev_id) or ""
+        dev_info = self._devices.get(self._selected_dev_id) or {}
+        dev_name = dev_info.get("deviceName", "Panasonic Fridge")
+        dev_sub_type_id = dev_info.get("devSubTypeId", "")
+        return self.async_create_entry(
+            title=dev_name,
+            data={
+                CONF_USERNAME: self._creds[CONF_USERNAME],
+                CONF_PASSWORD: self._creds[CONF_PASSWORD],
+                CONF_USR_ID: self._login_data[CONF_USR_ID],
+                CONF_SSID: self._login_data[CONF_SSID],
+                CONF_DEVICE_ID: self._selected_dev_id,
+                CONF_TOKEN: token,
+                CONF_DEVICE_KIND: DEVICE_KIND_FRIDGE,
                 CONF_DEV_SUB_TYPE_ID: dev_sub_type_id,
                 "familyId": self._login_data.get("familyId"),
                 "realFamilyId": self._login_data.get("realFamilyId"),
