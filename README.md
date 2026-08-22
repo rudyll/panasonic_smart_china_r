@@ -3,7 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![version](https://img.shields.io/badge/version-2.2.0-blue.svg)]()
 
-Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
+Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调、新风换气设备和冰箱。
 
 本项目基于 [mcdona1d/panasonic_smart_china](https://github.com/mcdona1d/panasonic_smart_china) 开发，在此基础上加入了新风设备支持，并大幅扩展了云端通信逻辑。感谢 arthurfsy 最早公开松下云端登录算法，感谢 Hassbian 论坛 omegaojian 对 MidERV 设备的抓包分析，为本项目逆向 DCERV-03 端点提供了关键线索。MidERV 与 SmallERV 机型的 payload 字段、运行模式值域和风量档位数据，参考自社区 [dkong5ssss/panasonic_smart_china_erv](https://github.com/dkong5ssss/panasonic_smart_china_erv) 项目，感谢该项目作者的实测和整理；LD5C（FY-25ZDP1C）的真实控制端点也由该项目作者从松下官方 Web 控制页的 JS 源码中定位并公开，另感谢 [accpowered](https://github.com/accpowered) 全程提供 FY-25ZDP1C 实机测试报告。
 
@@ -110,6 +110,37 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 - CO₂ 触发阈值：800 / 1000 / 1500 ppm (`coSen`)
 - TVOC 触发阈值：低 / 高 (`tvSen`)
 
+### 冰箱（category `0100`）🟡 W472 系列（Fridge-42）已实机验证
+
+冰箱走独立的 `FDev*` 协议家族，与空调/新风的 `ADev*` 协议完全不同——协议从松下官方 Web 控制页（`https://app.psmartcloud.com/ca/cn/0100/<devSubTypeId>/index.html`）反编译 App 4.26.0（未加壳的旧版本）的 JS 源码逆向确认。目前实机验证的机型是 **W472 系列**（`devSubTypeId=Fridge-42`）；其他 `Fridge-3x`/`Fridge-4x` 型号共享同一套后端字段，但每个型号在 App 里实际启用的功能集不同，本集成只收录了在 App 源码里能找到真实 UI 引用的字段，未验证的型号欢迎实机反馈后扩展。
+
+**端点：**
+- `FDevGetStatusInfo` / `FDevSetStatusInfo`：主状态查询与控制（`usrId`/`deviceId`/`token` 在请求体顶层，与新风 LD5C 的 Info 家族一致）
+- `FDevGetAlarmInfo`：报警列表
+
+**传感器：**
+
+| 传感器 | 字段 | 说明 |
+|--------|------|------|
+| 冷冻室 / 变温室 / 切换室 1/2 / 独立温区 1/2 温度 | `FCTempCur` / `PCTempCur` / `SCB1TempCur` / `SCB2TempCur` / `SCS1TempCur` / `SCS2TempCur` | °C |
+| 切换室 1/2 模式 | `SCB1ModeCur` / `SCB2ModeCur` | 语义未经实机验证，仅展示 |
+| 报警数量 | 来自 `FDevGetAlarmInfo` 的 `alarmList` | |
+
+**二元传感器：** 设备在线 (`bodyOffline`，取反)、本体/语音操作中 (`bodyOperating`/`voiceOperating`)、各温区异常报警 (`*TempCurAlarm`)、各门未关 (`*Gate*`)、缺水 (`waterLack`)
+
+**开关**（字段名和中文标签逐一核对 App `Fridge-42` 分支的 `modeList` 定义，避免暴露该机型实际不生效的字段）：
+- 纳诺怡 (`nanoe`)
+- 快速冷却 (`quickCooling`)
+- 极冻锁鲜 (`quickFreeze`)
+
+> GET 响应里还有 `ecoMode`/`eraseOdor`/`silver`/`preservation` 等字段，但整份 App 源码里都找不到任何 UI 引用（共享 bean 的占位字段）；`autoIcing`/`smartHumi` 有真实 UI，但只在 `Fridge-38`/`39`/`40`/`41` 的 `modeList` 分支里，`Fridge-42` 不包含——因此均未收录为 `Fridge-42` 的开关。
+
+**数值调节：**
+- 冷冻室 / 变温室设定温度 (`FCTempSet` / `PCTempSet`)
+- 切换室 1/2 设定温度 (`SCB1TempSet` / `SCB2TempSet`)：仅在对应 `SCB*ExtraMode == 0`（直接设温）时可写，且下限动态跟随冷冻室设定温度——复刻 App `setSCB()` 里 `FCTempSet > SCBxTempSet` 时强制上调的 clamp 逻辑
+
+**下拉选择：** 切换室 1/2 的 10 种食材保鲜档位（`SCB1ExtraMode`/`SCB2ExtraMode` 为 1–10），档位名称取自 App `setSCB()` 函数里的档位表（-3°c微冻 / 养生五谷 / 高级干货 / 低温发酵 / 高级臻品 / 腌制料理 / 婴幼辅食 / 母乳珍藏 / 暖存养胃 / 牛肉熟成）。
+
 ---
 
 ## 核心特性
@@ -185,6 +216,8 @@ token = sha512(f"{inner}_{suffix}")
 | SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
 | NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
+| 冰箱 W472 系列 | 0100 | ✅ 实机验证 | devSubTypeId=Fridge-42，独立 `FDev*` 协议家族 |
+| 冰箱其他型号 | 0100 | 🔍 征集测试 | Fridge-38/39/40/41 等共享后端字段，功能集因型号而异，欢迎反馈 |
 | 其他 0900 空调控制器 | 0900 | 🔍 征集数据 | [issue #7](https://github.com/rudyll/panasonic_smart_china_r/issues/7) |
 
 如果你的松下设备不在以上列表，可参考 [Wiki：如何适配新设备](https://github.com/rudyll/panasonic_smart_china_r/wiki/适配新设备型号) 自行逆向并提交 PR。
