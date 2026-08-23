@@ -1,4 +1,10 @@
-"""Binary sensor platform for Panasonic fridge devices (category 0100)."""
+"""Binary sensor platform for Panasonic fridge devices (category 0100).
+
+温区命名已用真实设备（Fridge-42）App 界面核对（2026-08-23）：PC=冷藏室、
+SCB1=变温室（均不是此前以为的"变温室"/"切换室1"，见 sensor.py 顶部注释）。
+SCGate 原来猜测是"冷藏室门"，但既然 PC 才是真正的冷藏室，这个猜测就站不住了——
+改成中性的"门未关（区域未确认）"，避免和 PC 的门传感器重复认领同一个房间。
+"""
 
 import logging
 from dataclasses import dataclass
@@ -27,18 +33,18 @@ BINARY_SPECS: tuple[FridgeBinarySpec, ...] = (
     FridgeBinarySpec("bodyOperating", "本体操作中", "body_operating", icon="mdi:cog-sync"),
     FridgeBinarySpec("voiceOperating", "语音操作中", "voice_operating", icon="mdi:microphone"),
     FridgeBinarySpec("FCTempCurAlarm", "冷冻室温度异常", "fc_temp_alarm", BinarySensorDeviceClass.PROBLEM),
-    FridgeBinarySpec("PCTempCurAlarm", "变温室温度异常", "pc_temp_alarm", BinarySensorDeviceClass.PROBLEM),
-    FridgeBinarySpec("SCB1TempCurAlarm", "切换室1温度异常", "scb1_temp_alarm", BinarySensorDeviceClass.PROBLEM),
-    FridgeBinarySpec("SCB2TempCurAlarm", "切换室2温度异常", "scb2_temp_alarm", BinarySensorDeviceClass.PROBLEM),
+    FridgeBinarySpec("PCTempCurAlarm", "冷藏室温度异常", "pc_temp_alarm", BinarySensorDeviceClass.PROBLEM),
+    FridgeBinarySpec("SCB1TempCurAlarm", "变温室温度异常", "scb1_temp_alarm", BinarySensorDeviceClass.PROBLEM),
+    FridgeBinarySpec("SCB2TempCurAlarm", "切换室2温度异常（App无对应界面，未确认）", "scb2_temp_alarm", BinarySensorDeviceClass.PROBLEM),
     FridgeBinarySpec("SCS1TempCurAlarm", "独立温区1温度异常", "scs1_temp_alarm", BinarySensorDeviceClass.PROBLEM),
     FridgeBinarySpec("SCS2TempCurAlarm", "独立温区2温度异常", "scs2_temp_alarm", BinarySensorDeviceClass.PROBLEM),
     FridgeBinarySpec("FCGate1", "冷冻室门1未关", "fc_gate1", BinarySensorDeviceClass.DOOR),
     FridgeBinarySpec("FCGate2", "冷冻室门2未关", "fc_gate2", BinarySensorDeviceClass.DOOR),
-    FridgeBinarySpec("PCGate1", "变温室门1未关", "pc_gate1", BinarySensorDeviceClass.DOOR),
-    FridgeBinarySpec("PCGate2", "变温室门2未关", "pc_gate2", BinarySensorDeviceClass.DOOR),
-    FridgeBinarySpec("SCB1Gate", "切换室1门未关", "scb1_gate", BinarySensorDeviceClass.DOOR),
-    FridgeBinarySpec("SCB2Gate", "切换室2门未关", "scb2_gate", BinarySensorDeviceClass.DOOR),
-    FridgeBinarySpec("SCGate", "冷藏室门未关", "sc_gate", BinarySensorDeviceClass.DOOR),
+    FridgeBinarySpec("PCGate1", "冷藏室门1未关", "pc_gate1", BinarySensorDeviceClass.DOOR),
+    FridgeBinarySpec("PCGate2", "冷藏室门2未关", "pc_gate2", BinarySensorDeviceClass.DOOR),
+    FridgeBinarySpec("SCB1Gate", "变温室门未关", "scb1_gate", BinarySensorDeviceClass.DOOR),
+    FridgeBinarySpec("SCB2Gate", "切换室2门未关（App无对应界面，未确认）", "scb2_gate", BinarySensorDeviceClass.DOOR),
+    FridgeBinarySpec("SCGate", "门未关（区域未确认）", "sc_gate", BinarySensorDeviceClass.DOOR),
     FridgeBinarySpec("waterLack", "缺水", "water_lack", BinarySensorDeviceClass.PROBLEM),
 )
 

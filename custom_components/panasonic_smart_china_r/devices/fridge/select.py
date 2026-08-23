@@ -1,12 +1,21 @@
-"""Select platform for Panasonic fridge devices (category 0100) — SCB1/SCB2 食材保鲜档位。
+"""Select platform for Panasonic fridge devices (category 0100) — 变温室食材保鲜档位。
 
-SCB1/SCB2 是可变冷冻/冷藏切换室。SCB*ExtraMode 不是普通开关，而是「直接设温 / 10 种
-食材保鲜档位」的互斥选择：0 = 直接设温（此时 SCB*TempSet 的数值写入才生效，见
-number.py），1-10 = 命中对应食材后 App 会提示切换的专用档位，每档背后有一套固定的
-（模式, 温度）组合，不建议再叠加手动温度写入。
+变温室（字段名 SCB1，此前误标成"切换室1"，见 sensor.py/number.py 顶部注释）的
+SCB1ExtraMode 不是普通开关，而是「直接设温 / 食材保鲜档位」的互斥选择：
+0 = 直接设温（此时 SCB1TempSet 的数值写入才生效，见 number.py），1+ = 命中对应
+食材后 App 会提示切换的专用档位，每档背后有一套固定的（模式, 温度）组合，不建议
+再叠加手动温度写入。
 
-档位名称和 MODE 序号来自 App 4.26.0（devSubTypeId=Fridge-42）的
-chunk-365722ae.6a9add35.js 里 setSCB() 函数的 `n` 数组，2026-08-22 反编译确认。
+档位名称和 MODE 序号最初来自 App 4.26.0（devSubTypeId=Fridge-42）的
+chunk-365722ae.6a9add35.js 里 setSCB() 函数的 `n` 数组（2026-08-22 反编译确认），
+该数组列出了全部 10 个档位名称，但那是食材推荐流程用的通用表，不代表这台设备的
+变温室设置界面真的全部提供。经真实设备 App 界面核对（2026-08-23），变温室的
+档位选择界面实际只提供其中 3 个（-3°c微冻/养生五谷/高级干货），其余 7 个档位
+（低温发酵/高级臻品/腌制料理/婴幼辅食/母乳珍藏/暖存养胃/牛肉熟成）在这台设备上
+没有对应界面，没有把握认定这些值可以安全写入，故不收录为可选项。
+
+SCB2（切换室2）在这台设备的 App 上完全没有对应的档位选择界面，故不提供
+SCB2ExtraMode 的 select 实体。
 """
 
 import logging
@@ -20,19 +29,13 @@ from ...const import CONF_DEVICE_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# index -> 档位名称（index 0 = 直接设温，对应 number.py 里的 SCB*TempSet 可写状态）
+# index -> 档位名称（index 0 = 直接设温，对应 number.py 里的 SCB1TempSet 可写状态）。
+# 只收录真实设备 App 界面上变温室档位选择实际提供的选项（见上方模块 docstring）。
 EXTRA_MODE_OPTIONS: dict[int, str] = {
     0: "直接设温",
     1: "-3°c微冻",
     2: "养生五谷",
     3: "高级干货",
-    4: "低温发酵",
-    5: "高级臻品",
-    6: "腌制料理",
-    7: "婴幼辅食",
-    8: "母乳珍藏",
-    9: "暖存养胃",
-    10: "牛肉熟成",
 }
 _NAME_TO_INDEX = {name: idx for idx, name in EXTRA_MODE_OPTIONS.items()}
 
@@ -46,8 +49,7 @@ class FridgeSelectSpec:
 
 
 SELECT_SPECS: tuple[FridgeSelectSpec, ...] = (
-    FridgeSelectSpec("SCB1ExtraMode", "切换室1档位", "scb1_extra_mode"),
-    FridgeSelectSpec("SCB2ExtraMode", "切换室2档位", "scb2_extra_mode"),
+    FridgeSelectSpec("SCB1ExtraMode", "变温室档位", "scb1_extra_mode"),
 )
 
 

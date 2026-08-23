@@ -24,21 +24,27 @@ class FridgeSensorSpec:
     is_measurement: bool = True
 
 
-# FC=冷冻室，PC=变温室，SCB1/SCB2=可变冷冻/冷藏切换室，SCS1/SCS2=部分机型才有的独立温区。
+# 字段名和 App 实际温区名的对应关系已用真实设备（Fridge-42）App 界面核对（2026-08-23）：
+# FC=冷冻室（App 名称一致）；PC 字段实际对应 App 的"冷藏室"（不是"变温室"）；
+# SCB1 字段实际对应 App 的"变温室"（不是"切换室1"——App 里根本没有"切换室"这个说法）。
+# SCB2 在这台设备的 App 上完全没有对应界面（没有"切换室2"），只作为诊断信息只读展示，
+# 命名保留字段原名以示未确认；SCS1/SCS2 是部分机型才有的独立温区，本机也未在 App
+# 界面见到对应入口，同样只做只读展示。
 TEMP_SENSOR_SPECS: tuple[FridgeSensorSpec, ...] = (
     FridgeSensorSpec("FCTempCur", "冷冻室温度", "fc_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
-    FridgeSensorSpec("PCTempCur", "变温室温度", "pc_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
-    FridgeSensorSpec("SCB1TempCur", "切换室1温度", "scb1_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
-    FridgeSensorSpec("SCB2TempCur", "切换室2温度", "scb2_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    FridgeSensorSpec("PCTempCur", "冷藏室温度", "pc_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    FridgeSensorSpec("SCB1TempCur", "变温室温度", "scb1_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
+    FridgeSensorSpec("SCB2TempCur", "切换室2温度（App无对应界面，未确认）", "scb2_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
     FridgeSensorSpec("SCS1TempCur", "独立温区1温度", "scs1_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
     FridgeSensorSpec("SCS2TempCur", "独立温区2温度", "scs2_temp", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS),
 )
 
-# SCB1TempSet/SCB2TempSet 现在是可写的 number 实体（见 number.py），不再重复放只读 sensor。
+# SCB1TempSet 现在是可写的 number 实体（见 number.py），不再重复放只读 sensor。
+# SCB2TempSet 没有对应 number 实体（见 number.py 里移除的说明）。
 
 MODE_SENSOR_SPECS: tuple[FridgeSensorSpec, ...] = (
-    FridgeSensorSpec("SCB1ModeCur", "切换室1模式", "scb1_mode", icon="mdi:fridge-variant", is_measurement=False),
-    FridgeSensorSpec("SCB2ModeCur", "切换室2模式", "scb2_mode", icon="mdi:fridge-variant", is_measurement=False),
+    FridgeSensorSpec("SCB1ModeCur", "变温室模式", "scb1_mode", icon="mdi:fridge-variant", is_measurement=False),
+    FridgeSensorSpec("SCB2ModeCur", "切换室2模式（App无对应界面，未确认）", "scb2_mode", icon="mdi:fridge-variant", is_measurement=False),
 )
 
 ALL_SPECS = TEMP_SENSOR_SPECS + MODE_SENSOR_SPECS
