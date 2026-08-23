@@ -40,17 +40,18 @@ DEVICE_KIND_FRIDGE = "fridge"
 _BASE_URL = "https://app.psmartcloud.com/App/"
 
 # 冰箱走独立的 FDev* 协议家族，与新风机/空调的 ADev* 完全不同：
-# GET 端点从松下官方 Web 控制页（https://app.psmartcloud.com/ca/cn/0100/<devSubTypeId>/index.html）
+# GET/SET 协议都从松下官方 Web 控制页（https://app.psmartcloud.com/ca/cn/0100/<devSubTypeId>/index.html）
 # 的 JS 源码逆向确认（2026-08-22，devSubTypeId=Fridge-42 实测）。
 #
-# SET 端点最初误用了 Web 页 JS 里调用的 FDevSetStatusInfo（云端接受请求但未必真的
-# 下发给设备——wiki 里 DCERV-03 就吃过这个亏）。经与独立实现
-# https://github.com/mcdona1d/panasonic_smart_china/pull/12（作者对冰箱走过真实抓包，
-# 非静态 JS 推断）比对，真正的控制端点带 Mqtt 后缀；已用无副作用探测验证：把当前
-# 状态原样回写给 FDevSetStatusInfoMqtt（不改变任何字段值），实测在本设备
-# （Fridge-42）上返回 200 且无 error，端点确认存在。
+# 曾对照独立实现 https://github.com/mcdona1d/panasonic_smart_china/pull/12
+# （该作者对他自己的冰箱做过真实抓包）怀疑 SET 端点应该带 Mqtt 后缀，短暂改用过
+# FDevSetStatusInfoMqtt。但实测发现该端点返回的是空壳成功（无 results/todoId），
+# 真正改变字段值后完全不生效；而 Web 页 JS 调用的 FDevSetStatusInfo 会返回
+# {"results":{"todoId":N}}，且真实改了 nanoe 字段并在约 5-10 秒后在 GET 响应里
+# 观察到生效——已改回来。Mqtt 后缀大概率是对方那台不同硬件/固件版本冰箱专属的
+# 端点，并非本设备（Fridge-42）通用。
 FDEV_GET_STATUS_URL = _BASE_URL + "FDevGetStatusInfo"
-FDEV_SET_STATUS_URL = _BASE_URL + "FDevSetStatusInfoMqtt"
+FDEV_SET_STATUS_URL = _BASE_URL + "FDevSetStatusInfo"
 FDEV_GET_ALARM_URL = _BASE_URL + "FDevGetAlarmInfo"
 
 # devSubTypeId 前缀 → (GET端点完整URL, SET端点完整URL)

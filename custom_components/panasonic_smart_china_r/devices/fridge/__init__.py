@@ -1,15 +1,19 @@
 """冰箱（category 0100）状态查询与控制。
 
 冰箱走独立的 FDev* 协议家族，与新风机/空调的 ADev* 协议完全不同（2026-08-22，
-devSubTypeId=Fridge-42 实测确认，GET 协议来自松下官方 Web 控制页
+devSubTypeId=Fridge-42 实测确认，GET/SET 协议都来自松下官方 Web 控制页
 https://app.psmartcloud.com/ca/cn/0100/<devSubTypeId>/index.html 的 JS 源码逆向）：
 - usrId/deviceId/token 在请求体顶层，不在 params 里（与 LD5C 的 Info 家族一致）
-- SET 端点是 FDevSetStatusInfoMqtt（不是 Web 页 JS 里调用的 FDevSetStatusInfo——
-  经与独立实现 https://github.com/mcdona1d/panasonic_smart_china/pull/12
-  的真实抓包比对并用无副作用回写验证，见 const.py 里的注释）
+- SET 端点是 FDevSetStatusInfo；曾怀疑应该改用独立实现
+  https://github.com/mcdona1d/panasonic_smart_china/pull/12 里带 Mqtt 后缀的端点，
+  但实测 Mqtt 版本返回空壳成功、真实改值完全不生效，而 FDevSetStatusInfo 会返回
+  {"results":{"todoId":N}} 且真实生效（约 5-10 秒后能在 GET 响应里观察到），
+  已确认改回 FDevSetStatusInfo，详见 const.py 里的注释
 - SET payload 用 _FRIDGE_SET_KEYS 白名单从当前状态里取值再叠加要改的字段，
   不是不加甄别地整表回写——changeCode/displayCode/controlCode/fcCode/data37-49
   这类字段看着像只读派生码，回写它们没有已知依据，索性不带
+- SET 生效有延迟（实测约 5-10 秒），调用方 turn_on/turn_off 之后不要期望
+  coordinator 立刻刷新就能看到新值
 """
 
 import asyncio
@@ -40,11 +44,12 @@ _LOGGER = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 
-# FDevSetStatusInfoMqtt 的 Read-Modify-Write 白名单：取自独立实现
+# FDevSetStatusInfo 的 Read-Modify-Write 白名单：取自独立实现
 # https://github.com/mcdona1d/panasonic_smart_china/pull/12 里对冰箱真实抓包整理出的
 # _FRIDGE_SET_KEYS（该作者捕获的是另一台 devSubTypeId=Fridge-55 设备，字段集比我们
-# Fridge-42 实测到的更丰富）。这里只是全量白名单，真正回写时会先与本机 GET 响应的
-# 现有字段取交集，不存在的字段不会凭空补 0。
+# Fridge-42 实测到的更丰富；该 PR 用的端点带 Mqtt 后缀，实测对本设备不生效，
+# 但字段白名单本身依然是有价值的参考，两者是独立的问题）。这里只是全量白名单，
+# 真正回写时会先与本机 GET 响应的现有字段取交集，不存在的字段不会凭空补 0。
 _FRIDGE_SET_KEYS = (
     "PCTempSet", "PCTempCur", "PCTempCurAlarm",
     "SCS1TempSet", "SCS1TempCur", "SCS1TempCurAlarm",
@@ -149,7 +154,7 @@ class FridgeCoordinator(DataUpdateCoordinator):
         return data
 
     async def async_set_fields(self, **fields) -> None:
-        """发 FDevSetStatusInfoMqtt。
+        """发 FDevSetStatusInfo。
 
         params 用 _FRIDGE_SET_KEYS 白名单里、且本机 GET 响应里确实存在的字段取值，
         叠加要改的字段一起整体发出，而不是只发变化的那一个 —— wiki 记录过 DCERV-03
@@ -201,5 +206,7 @@ class FridgeCoordinator(DataUpdateCoordinator):
         if not succeeded:
             raise HomeAssistantError(f"请求失败（已重试{_MAX_RETRIES}次）: {err}")
 
-        await asyncio.sleep(3)
+        # 实测 todoId 从入队到在 GET 响应里真正生效大约要 5-10 秒，3 秒太短，
+        # 刷新时经常还是旧值。
+        await asyncio.sleep(10)
         await self.async_request_refresh()
