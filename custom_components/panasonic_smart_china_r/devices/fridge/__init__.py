@@ -1,11 +1,15 @@
 """冰箱（category 0100）状态查询与控制。
 
 冰箱走独立的 FDev* 协议家族，与新风机/空调的 ADev* 协议完全不同（2026-08-22，
-devSubTypeId=Fridge-42 实测确认，协议来自松下官方 Web 控制页
+devSubTypeId=Fridge-42 实测确认，GET 协议来自松下官方 Web 控制页
 https://app.psmartcloud.com/ca/cn/0100/<devSubTypeId>/index.html 的 JS 源码逆向）：
 - usrId/deviceId/token 在请求体顶层，不在 params 里（与 LD5C 的 Info 家族一致）
-- SET 支持稀疏 payload；这里仍然把当前已知状态整体带上再叠加要改的字段，
-  避免像 wiki 里记录的 DCERV-03 那样因缺字段而云端返回成功但设备不执行
+- SET 端点是 FDevSetStatusInfoMqtt（不是 Web 页 JS 里调用的 FDevSetStatusInfo——
+  经与独立实现 https://github.com/mcdona1d/panasonic_smart_china/pull/12
+  的真实抓包比对并用无副作用回写验证，见 const.py 里的注释）
+- SET payload 用 _FRIDGE_SET_KEYS 白名单从当前状态里取值再叠加要改的字段，
+  不是不加甄别地整表回写——changeCode/displayCode/controlCode/fcCode/data37-49
+  这类字段看着像只读派生码，回写它们没有已知依据，索性不带
 """
 
 import asyncio
@@ -35,6 +39,28 @@ from ...exceptions import LoginFailed, ReloginCooldown
 _LOGGER = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
+
+# FDevSetStatusInfoMqtt 的 Read-Modify-Write 白名单：取自独立实现
+# https://github.com/mcdona1d/panasonic_smart_china/pull/12 里对冰箱真实抓包整理出的
+# _FRIDGE_SET_KEYS（该作者捕获的是另一台 devSubTypeId=Fridge-55 设备，字段集比我们
+# Fridge-42 实测到的更丰富）。这里只是全量白名单，真正回写时会先与本机 GET 响应的
+# 现有字段取交集，不存在的字段不会凭空补 0。
+_FRIDGE_SET_KEYS = (
+    "PCTempSet", "PCTempCur", "PCTempCurAlarm",
+    "SCS1TempSet", "SCS1TempCur", "SCS1TempCurAlarm",
+    "SCS2TempSet", "SCS2TempCur", "SCS2TempCurAlarm",
+    "SCB1TempSet", "SCB1TempCur", "SCB1TempCurAlarm",
+    "SCB2TempSet", "SCB2TempCur", "SCB2TempCurAlarm",
+    "FCTempSet", "FCTempCur", "FCTempCurAlarm",
+    "quickFreeze", "quickCooling", "vacation", "quickicing", "icingStop", "icingDeice",
+    "eraseOdor", "ecoNaviSet", "speed", "RAModeCur", "SAModeCur",
+    "bodyOperating", "iceDetection", "waterLack", "silver", "preservation",
+    "nanoe", "freshFrozen", "smartHumi", "autoIcing", "WCModeCur",
+    "SCB1ModeCur", "SCB2ModeCur", "SCB1ExtraMode", "SCB2ExtraMode",
+    "PCGate1", "PCGate2", "SCGate", "SCB1Gate", "SCB2Gate", "FCGate1", "FCGate2",
+    "ICGate", "gateAlarm", "ecoMode", "bodyOffline",
+    "waterFresh", "PCMicroFreeze", "SCS1DryStore", "PCMilkStore",
+)
 
 
 def _headers(ssid: str) -> dict:
@@ -123,17 +149,17 @@ class FridgeCoordinator(DataUpdateCoordinator):
         return data
 
     async def async_set_fields(self, **fields) -> None:
-        """发 FDevSetStatusInfo。
+        """发 FDevSetStatusInfoMqtt。
 
-        params 用当前轮询到的所有已知标量字段叠加要改的字段一起发出，而不是只发
-        变化的那一个 —— wiki 记录过 DCERV-03 因为 SET payload 缺字段导致云端
-        返回成功（todoId）但设备不执行，这里用同样的思路规避。
+        params 用 _FRIDGE_SET_KEYS 白名单里、且本机 GET 响应里确实存在的字段取值，
+        叠加要改的字段一起整体发出，而不是只发变化的那一个 —— wiki 记录过 DCERV-03
+        因为 SET payload 缺字段导致云端返回成功（todoId）但设备不执行，这里用同样
+        的思路规避。只取白名单交集而不是全部已知标量字段，是为了不回写
+        changeCode/displayCode/controlCode/fcCode/data37-49 这类看着像只读派生码、
+        没有已知写入依据的字段。
         """
-        current = {
-            key: value
-            for key, value in (self.data or {}).items()
-            if key != "alarmList" and isinstance(value, (int, float, str))
-        }
+        status = self.data or {}
+        current = {key: status[key] for key in _FRIDGE_SET_KEYS if key in status}
         params = {**current, **fields}
 
         token = generate_device_token(self._device_id)
