@@ -26,6 +26,7 @@ from ...const import (
     SUPPORTED_CONTROLLERS, FAN_MUTE, FAN_MIN, FAN_MAX,
 )
 from ...exceptions import LoginFailed, ReloginCooldown
+from .temperature import decode_temperature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,6 +137,11 @@ class PanasonicACEntity(ClimateEntity):
 
     @property
     def current_temperature(self):
+        cloud_temperature = decode_temperature(
+            self._last_params.get("inhaleTemperature"), self._temp_scale
+        )
+        if cloud_temperature is not None:
+            return cloud_temperature
         if not self._sensor_id:
             return None
         state = self._hass.states.get(self._sensor_id)

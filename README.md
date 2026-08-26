@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.2.1-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.2.2-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -15,6 +15,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 - 型号：配合 `CZ-RD501DW2` 线控器的松下家用多联/风管机
 - 提供标准 `climate` 实体，支持开关机、模式切换、温度设定、风速调节
+- 当前温度优先读取空调云端的 `inhaleTemperature`；云端没有有效值时才回退到可选的外部室温传感器
 
 ### 新风换气机（category `0800` / `0850`）
 
