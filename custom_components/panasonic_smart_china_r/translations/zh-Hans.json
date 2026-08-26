@@ -18,10 +18,10 @@
       },
       "ac_config": {
         "title": "空调额外配置",
-        "description": "空调设备需要额外指定线控器型号与关联的室温传感器。",
+        "description": "请选择线控器型号。室温传感器为可选项，仅用于显示当前室温，不影响空调控制。",
         "data": {
           "controller_model": "线控器/遥控器型号",
-          "sensor_entity_id": "关联室温传感器"
+          "sensor_entity_id": "关联室温传感器（可选）"
         }
       },
       "reauth_confirm": {

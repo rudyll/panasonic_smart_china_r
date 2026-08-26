@@ -194,21 +194,24 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 dev_info = self._devices.get(self._selected_dev_id) or {}
                 dev_name = dev_info.get("deviceName", "Panasonic AC")
+                entry_data = {
+                    CONF_USERNAME: self._creds[CONF_USERNAME],
+                    CONF_PASSWORD: self._creds[CONF_PASSWORD],
+                    CONF_USR_ID: self._login_data[CONF_USR_ID],
+                    CONF_SSID: self._login_data[CONF_SSID],
+                    CONF_DEVICE_ID: self._selected_dev_id,
+                    CONF_TOKEN: token,
+                    CONF_CONTROLLER_MODEL: user_input[CONF_CONTROLLER_MODEL],
+                    CONF_DEVICE_KIND: DEVICE_KIND_AC,
+                    "familyId": self._login_data.get("familyId"),
+                    "realFamilyId": self._login_data.get("realFamilyId"),
+                }
+                sensor_id = user_input.get(CONF_SENSOR_ID)
+                if sensor_id:
+                    entry_data[CONF_SENSOR_ID] = sensor_id
                 return self.async_create_entry(
                     title=dev_name,
-                    data={
-                        CONF_USERNAME: self._creds[CONF_USERNAME],
-                        CONF_PASSWORD: self._creds[CONF_PASSWORD],
-                        CONF_USR_ID: self._login_data[CONF_USR_ID],
-                        CONF_SSID: self._login_data[CONF_SSID],
-                        CONF_DEVICE_ID: self._selected_dev_id,
-                        CONF_TOKEN: token,
-                        CONF_SENSOR_ID: user_input[CONF_SENSOR_ID],
-                        CONF_CONTROLLER_MODEL: user_input[CONF_CONTROLLER_MODEL],
-                        CONF_DEVICE_KIND: DEVICE_KIND_AC,
-                        "familyId": self._login_data.get("familyId"),
-                        "realFamilyId": self._login_data.get("realFamilyId"),
-                    },
+                    data=entry_data,
                 )
 
         controller_options = {k: v["name"] for k, v in SUPPORTED_CONTROLLERS.items()}
@@ -219,7 +222,7 @@ class PanasonicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_CONTROLLER_MODEL, default="CZ-RD501DW2"): vol.In(
                         controller_options
                     ),
-                    vol.Required(CONF_SENSOR_ID): EntitySelector(
+                    vol.Optional(CONF_SENSOR_ID): EntitySelector(
                         EntitySelectorConfig(domain="sensor")
                     ),
                 }
