@@ -62,6 +62,9 @@ class FreshAirCoordinator(DataUpdateCoordinator):
     @staticmethod
     def _profile_from_sub_type(dev_sub_type_id: str) -> str:
         upper = (dev_sub_type_id or "").upper().replace("-", "")
+        # SMALLERV02（FY-25ZM1C）有独立实时状态值域，必须先于通用 SmallERV 匹配。
+        if upper.startswith("SMALLERV02"):
+            return "SMALLERV02"
         if upper.startswith("SMALLERV"):
             return "SMALLERV"
         if upper.startswith("MIDERV"):

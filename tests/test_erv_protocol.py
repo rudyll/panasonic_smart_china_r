@@ -48,6 +48,21 @@ class ErvProtocolTest(unittest.TestCase):
         self.assertEqual(payload["tMin6"], 255)
         self.assertNotIn("tOnH", payload)
 
+    def test_smallerv02_uses_reported_values_and_live_status_profile(self):
+        self.assertEqual(ERV.SMALLERV02_AIR_VOLUME_MAP, {1: "低", 3: "高"})
+        self.assertIn("SMALLERV02", ERV.LIVE_STATUS_PROFILES)
+        self.assertEqual(
+            ERV.ERV_PROFILES["SMALLERV02"]["air_volume_map"],
+            {1: "低", 3: "高"},
+        )
+        self.assertFalse(ERV.ERV_PROFILES["SMALLERV02"]["has_run_mode"])
+        self.assertEqual(
+            set(ERV.SENSOR_KEYS_BY_PROFILE["SMALLERV02"]),
+            {"oaPMC", "oaHumC", "oaTeC"},
+        )
+        payload = ERV.build_smallerv_payload("device", "token", "user", airVo=3)
+        self.assertEqual(payload["airVo"], 3)
+
     def test_newdcerv_has_its_own_payload_and_preserves_current_oa_pm(self):
         payload = ERV.build_newdcerv_payload(
             "device", "token", "user", runSta=1, oaPMC=18

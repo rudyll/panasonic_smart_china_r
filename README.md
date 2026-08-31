@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.2.2-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.2.3-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -29,7 +29,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 | FV-RZ06VD1 | MIDERV | 0800 | ✅ 用户确认可用 |
 | FV-25ZDP2C | LD6C | 0800 | 🟡 专用状态接口与风量已获用户验证 |
 | FY-25ZDP1C | LD5C | 0800 | ✅ 控制协议已确认并实机验证（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
-| SmallERV 系列 | SmallERV-\* | 0850 | 🟡 代码完整，征集测试（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
+| SmallERV 系列 | SmallERV-\* | 0850 | 🟡 `SMALLERV02`（FY-25ZM1C）已加入专用适配，待用户验证（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
 | NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
 #### MidERV（FV-RZ06VD1 等）
@@ -66,7 +66,9 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 #### SmallERV
 
-- 风量：低 / 高 (`airVo` 0/1)
+- 通用 SmallERV 风量：低 / 高 (`airVo` 0/1)
+- `SMALLERV02`（FY-25ZM1C）风量：低 / 高 (`airVo` 1/3)，状态从 `ADevGetStatusSmallERV` 实时端点读取
+- `SMALLERV02` 创建室外 PM2.5、室外温度、室外湿度传感器；未提供 `runM`，不创建运行模式控件
 - 使用 App 对应的六组定时字段和 SmallERV 专用控制 payload
 
 #### NewDCERV
@@ -183,7 +185,7 @@ token = sha512(f"{inner}_{suffix}")
 | MidERV 中型新风 | 0800 | ✅ 用户确认 | FV-RZ06VD1 |
 | LD6C 新风 | 0800 | 🟡 待设备验证 | FV-25ZDP2C（使用 LD6C 专用接口） |
 | LD5C 新风 | 0800 | ✅ 用户确认 | FY-25ZDP1C（使用官方 Web 页的 Info 端点，[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
-| SmallERV 小型新风 | 0850 | 🟡 征集测试 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
+| SmallERV 小型新风 | 0850 | 🟡 `SMALLERV02` 专用适配待验证 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
 | NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
 | 其他 0900 空调控制器 | 0900 | 🔍 征集数据 | [issue #7](https://github.com/rudyll/panasonic_smart_china_r/issues/7) |
