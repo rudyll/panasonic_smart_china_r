@@ -50,6 +50,11 @@ SENSOR_SPECS: tuple[FreshAirSensorSpec, ...] = (
     FreshAirSensorSpec("saFilExTL","送风滤网剩余寿命", "sa_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("raFilExTL","回风滤网剩余寿命", "ra_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("resFilExTL","新风集尘滤网剩余寿命", "res_filter_life",None,                    UnitOfTime.HOURS,                icon="mdi:air-filter"),
+    # SmallERV02 使用不同于其他机型的专用滤网倒计时字段。
+    FreshAirSensorSpec("filClTL",     "滤网清洁倒计时",       "smallerv02_filter_clean",  None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("oaFilClFirTL","初效滤网更换倒计时",   "smallerv02_initial_filter", None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("oaFilExPMTL", "PM2.5滤网更换倒计时",  "smallerv02_pm_filter",      None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("reFilExTL",   "回风侧滤网更换倒计时", "smallerv02_return_filter",  None, UnitOfTime.HOURS, icon="mdi:air-filter"),
 )
 
 

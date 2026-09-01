@@ -58,10 +58,18 @@ class ErvProtocolTest(unittest.TestCase):
         self.assertFalse(ERV.ERV_PROFILES["SMALLERV02"]["has_run_mode"])
         self.assertEqual(
             set(ERV.SENSOR_KEYS_BY_PROFILE["SMALLERV02"]),
-            {"oaPMC", "oaHumC", "oaTeC"},
+            {
+                "oaPMC", "oaHumC", "oaTeC",
+                "filClTL", "oaFilClFirTL", "oaFilExPMTL", "reFilExTL",
+            },
         )
         payload = ERV.build_smallerv_payload("device", "token", "user", airVo=3)
         self.assertEqual(payload["airVo"], 3)
+
+    def test_smallerv02_filter_countdown_fields_are_valid_sensors(self):
+        for key in ("filClTL", "oaFilClFirTL", "oaFilExPMTL", "reFilExTL"):
+            self.assertFalse(ERV.is_invalid_sensor_value(key, 376))
+            self.assertTrue(ERV.is_invalid_sensor_value(key, 65535))
 
     def test_newdcerv_has_its_own_payload_and_preserves_current_oa_pm(self):
         payload = ERV.build_newdcerv_payload(

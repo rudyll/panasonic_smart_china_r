@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.4
+
+- 补充 `SMALLERV02`（FY-25ZM1C）滤网倒计时实体：滤网清洁倒计时，以及回风侧、PM2.5、初效滤网更换倒计时。
+- 这些字段来自 `ADevGetStatusSmallERV` 的专用返回值，单位为小时，并按协议无效值过滤 `65535`。
+
 ## 2.2.3
 
 - 修复 `SMALLERV02`（FY-25ZM1C）状态反馈：改用 `ADevGetStatusSmallERV` 实时接口，不再依赖设备列表里的缓存状态。

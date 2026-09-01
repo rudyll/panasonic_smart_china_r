@@ -125,8 +125,11 @@ SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
     ),
     # FY-25ZDP1C 实机只提供室外三项和回风滤网寿命，其余字段是占位值。
     "LD5C": LD5C_AUX_SENSOR_KEYS,
-    # FY-25ZM1C 专用状态端点实际返回室外 PM2.5、湿度和温度。
-    "SMALLERV02": ("oaPMC", "oaHumC", "oaTeC"),
+    # FY-25ZM1C 专用状态端点实际返回室外三项和四个滤网倒计时字段。
+    "SMALLERV02": (
+        "oaPMC", "oaHumC", "oaTeC",
+        "filClTL", "oaFilClFirTL", "oaFilExPMTL", "reFilExTL",
+    ),
 }
 
 # 这些机型的实时状态由各自专用端点提供；设备列表里的 statusAll 是云端缓存，
@@ -151,6 +154,10 @@ SENSOR_INVALID_VALUES: dict[str, frozenset[int]] = {
     "saFilExTL": frozenset({65535}),
     "raFilExTL": frozenset({65535}),
     "resFilExTL": frozenset({65535}),
+    "filClTL": frozenset({65535}),
+    "oaFilClFirTL": frozenset({65535}),
+    "oaFilExPMTL": frozenset({65535}),
+    "reFilExTL": frozenset({65535}),
 }
 
 

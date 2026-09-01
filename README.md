@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.2.3-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.2.4-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -69,6 +69,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 - 通用 SmallERV 风量：低 / 高 (`airVo` 0/1)
 - `SMALLERV02`（FY-25ZM1C）风量：低 / 高 (`airVo` 1/3)，状态从 `ADevGetStatusSmallERV` 实时端点读取
 - `SMALLERV02` 创建室外 PM2.5、室外温度、室外湿度传感器；未提供 `runM`，不创建运行模式控件
+- `SMALLERV02` 还提供滤网清洁倒计时，以及回风侧、PM2.5、初效滤网三个更换倒计时（单位：小时）
 - 使用 App 对应的六组定时字段和 SmallERV 专用控制 payload
 
 #### NewDCERV
