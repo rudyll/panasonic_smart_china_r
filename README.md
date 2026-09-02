@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.2.4-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.2.5-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 

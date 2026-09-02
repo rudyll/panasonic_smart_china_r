@@ -50,6 +50,15 @@ class ErvProtocolTest(unittest.TestCase):
 
     def test_smallerv02_uses_reported_values_and_live_status_profile(self):
         self.assertEqual(ERV.SMALLERV02_AIR_VOLUME_MAP, {1: "低", 3: "高"})
+        self.assertEqual(
+            ERV.SMALLERV02_FILTER_FIELD_LABELS,
+            {
+                "filClTL": "滤网清洁倒计时",
+                "oaFilClFirTL": "回风侧滤网更换倒计时",
+                "oaFilExPMTL": "PM2.5滤网更换倒计时",
+                "reFilExTL": "初效滤网更换倒计时",
+            },
+        )
         self.assertIn("SMALLERV02", ERV.LIVE_STATUS_PROFILES)
         self.assertEqual(
             ERV.ERV_PROFILES["SMALLERV02"]["air_volume_map"],

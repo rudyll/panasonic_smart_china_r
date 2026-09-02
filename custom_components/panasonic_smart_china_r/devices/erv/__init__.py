@@ -132,6 +132,14 @@ SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
     ),
 }
 
+# FY-25ZM1C 的字段前缀与 App 展示名称并非一一对应，名称按实机截图校准。
+SMALLERV02_FILTER_FIELD_LABELS: dict[str, str] = {
+    "filClTL": "滤网清洁倒计时",
+    "oaFilClFirTL": "回风侧滤网更换倒计时",
+    "oaFilExPMTL": "PM2.5滤网更换倒计时",
+    "reFilExTL": "初效滤网更换倒计时",
+}
+
 # 这些机型的实时状态由各自专用端点提供；设备列表里的 statusAll 是云端缓存，
 # 控制命令执行后不会刷新，也可能缺少送风温度、滤网寿命等字段。
 LIVE_STATUS_PROFILES = frozenset({"DCERV", "LD6C", "LD5C", "SMALLERV02"})

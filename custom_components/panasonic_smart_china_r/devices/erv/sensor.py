@@ -19,7 +19,11 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ...const import CONF_DEVICE_ID, DOMAIN
-from . import SENSOR_KEYS_BY_PROFILE, is_invalid_sensor_value
+from . import (
+    SENSOR_KEYS_BY_PROFILE,
+    SMALLERV02_FILTER_FIELD_LABELS,
+    is_invalid_sensor_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,10 +55,11 @@ SENSOR_SPECS: tuple[FreshAirSensorSpec, ...] = (
     FreshAirSensorSpec("raFilExTL","回风滤网剩余寿命", "ra_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("resFilExTL","新风集尘滤网剩余寿命", "res_filter_life",None,                    UnitOfTime.HOURS,                icon="mdi:air-filter"),
     # SmallERV02 使用不同于其他机型的专用滤网倒计时字段。
-    FreshAirSensorSpec("filClTL",     "滤网清洁倒计时",       "smallerv02_filter_clean",  None, UnitOfTime.HOURS, icon="mdi:air-filter"),
-    FreshAirSensorSpec("oaFilClFirTL","初效滤网更换倒计时",   "smallerv02_initial_filter", None, UnitOfTime.HOURS, icon="mdi:air-filter"),
-    FreshAirSensorSpec("oaFilExPMTL", "PM2.5滤网更换倒计时",  "smallerv02_pm_filter",      None, UnitOfTime.HOURS, icon="mdi:air-filter"),
-    FreshAirSensorSpec("reFilExTL",   "回风侧滤网更换倒计时", "smallerv02_return_filter",  None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    # unique_suffix 保持 v2.2.4 的值，避免更正名称后产生重复实体。
+    FreshAirSensorSpec("filClTL",     SMALLERV02_FILTER_FIELD_LABELS["filClTL"],     "smallerv02_filter_clean",   None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("oaFilClFirTL",SMALLERV02_FILTER_FIELD_LABELS["oaFilClFirTL"],"smallerv02_initial_filter", None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("oaFilExPMTL", SMALLERV02_FILTER_FIELD_LABELS["oaFilExPMTL"], "smallerv02_pm_filter",      None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("reFilExTL",   SMALLERV02_FILTER_FIELD_LABELS["reFilExTL"],   "smallerv02_return_filter",  None, UnitOfTime.HOURS, icon="mdi:air-filter"),
 )
 
 
