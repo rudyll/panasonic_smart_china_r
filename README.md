@@ -9,7 +9,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 ## 自愿赞助
 
-如果这个项目对你有帮助，欢迎通过 [PayPal](https://paypal.me/rudy219) 自愿赞助，支持后续的新风设备适配和维护。
+如果这个项目对你有帮助，欢迎通过 [PayPal](https://paypal.me/unitekno) 自愿赞助，支持后续的新风设备适配和维护。
 
 赞助完全自愿，不影响软件的使用、更新、许可证授予或问题处理；本项目仍按 [MIT License](LICENSE) 发布。
 
