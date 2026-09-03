@@ -7,6 +7,12 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 本项目基于 [mcdona1d/panasonic_smart_china](https://github.com/mcdona1d/panasonic_smart_china) 开发，在此基础上加入了新风设备支持，并大幅扩展了云端通信逻辑。感谢 arthurfsy 最早公开松下云端登录算法，感谢 Hassbian 论坛 omegaojian 对 MidERV 设备的抓包分析，为本项目逆向 DCERV-03 端点提供了关键线索。MidERV 与 SmallERV 机型的 payload 字段、运行模式值域和风量档位数据，参考自社区 [dkong5ssss/panasonic_smart_china_erv](https://github.com/dkong5ssss/panasonic_smart_china_erv) 项目，感谢该项目作者的实测和整理；LD5C（FY-25ZDP1C）的真实控制端点也由该项目作者从松下官方 Web 控制页的 JS 源码中定位并公开，另感谢 [accpowered](https://github.com/accpowered) 全程提供 FY-25ZDP1C 实机测试报告。
 
+## 自愿赞助
+
+如果这个项目对你有帮助，欢迎通过 [PayPal](https://paypal.me/rudy219) 自愿赞助，支持后续的新风设备适配和维护。
+
+赞助完全自愿，不影响软件的使用、更新、许可证授予或问题处理；本项目仍按 [MIT License](LICENSE) 发布。
+
 ---
 
 ## 支持设备
@@ -241,13 +247,5 @@ FY-25ZDP1C（`devSubTypeId=LD5C`）的控制协议已经确认并实机验证，
 ## 免责声明
 
 本项目为社区开源作品，非松下官方出品。通过模拟 App API 请求实现功能，请合理使用。因使用本项目导致的设备异常或账号问题，开发者不承担责任。
-
----
-
-## 自愿赞助
-
-如果这个项目对你有帮助，欢迎通过 [PayPal](https://paypal.me/rudy219) 自愿赞助，支持后续的新风设备适配和维护。
-
-赞助完全自愿，不影响软件的使用、更新、许可证授予或问题处理；本项目仍按 [MIT License](LICENSE) 发布。
 
 ---
