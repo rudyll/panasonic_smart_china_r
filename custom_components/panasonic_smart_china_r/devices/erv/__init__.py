@@ -48,6 +48,17 @@ MIDERV_RUN_MODE_SET_MAP: dict[str, int] = {
 
 MIDERV_AIR_VOLUME_MAP: dict[int, str] = {1: "低", 2: "中", 3: "高"}
 
+# NewDCERV（FV-RZ09VD2 壁挂机，devSubTypeId=NEWDCERV）2026-09-04 实机验证：
+# 通过 ADevSetStatusNewDCERV 逐值写入再用 ADevGetStatusNewDCERV 读回，
+# runM 只接受 0/2/3/4（写 1/5/6 设备保持原值），与 MidERV 同一值域；
+# 写 3（睡眠）时设备自动把 airVo 降到 1。airVo 接受 1/2/3，nanoe 接受 0/1。
+NEWDCERV_RUN_MODE_GET_MAP: dict[int, str] = MIDERV_RUN_MODE_GET_MAP
+NEWDCERV_RUN_MODE_SET_MAP: dict[str, int] = MIDERV_RUN_MODE_SET_MAP
+NEWDCERV_AIR_VOLUME_MAP: dict[int, str] = MIDERV_AIR_VOLUME_MAP
+
+# FV-RZ09VD2 的 NewDCERV 端点里室外温湿度是占位值，真实读数要从 MidERV 端点补。
+NEWDCERV_AUX_SENSOR_KEYS: tuple[str, ...] = ("oaHumC", "oaTeC")
+
 # LD6C（FV-25/35/50ZDP2C）映射来自松下 App 的 Ld6cBeanConvert。
 LD6C_RUN_MODE_GET_MAP: dict[int, str] = {
     1: "热交换",
@@ -125,6 +136,12 @@ SENSOR_KEYS_BY_PROFILE: dict[str, tuple[str, ...]] = {
     ),
     # FY-25ZDP1C 实机只提供室外三项和回风滤网寿命，其余字段是占位值。
     "LD5C": LD5C_AUX_SENSOR_KEYS,
+    # FV-RZ09VD2 实机：NewDCERV 端点只有室外 PM2.5 和三组滤网倒计时是真值，
+    # 送风/回风温湿度、PM2.5、CO₂ 全是占位值；室外温湿度由 MidERV 端点补齐。
+    "NEWDCERV": (
+        "oaPMC", "oaHumC", "oaTeC",
+        "pmFstFilClTL", "pmFstFilExTL", "returnInFilExTL",
+    ),
     # FY-25ZM1C 专用状态端点实际返回室外三项和四个滤网倒计时字段。
     "SMALLERV02": (
         "oaPMC", "oaHumC", "oaTeC",
@@ -142,7 +159,7 @@ SMALLERV02_FILTER_FIELD_LABELS: dict[str, str] = {
 
 # 这些机型的实时状态由各自专用端点提供；设备列表里的 statusAll 是云端缓存，
 # 控制命令执行后不会刷新，也可能缺少送风温度、滤网寿命等字段。
-LIVE_STATUS_PROFILES = frozenset({"DCERV", "LD6C", "LD5C", "SMALLERV02"})
+LIVE_STATUS_PROFILES = frozenset({"DCERV", "NEWDCERV", "LD6C", "LD5C", "SMALLERV02"})
 
 # 占位值必须按字段判断，不能全局过滤：例如 PM2.5 的 255 可能是真实读数，
 # 而温度的 127、湿度的 255、PM2.5/CO₂ 的 65535 是协议无效值。
@@ -166,6 +183,9 @@ SENSOR_INVALID_VALUES: dict[str, frozenset[int]] = {
     "oaFilClFirTL": frozenset({65535}),
     "oaFilExPMTL": frozenset({65535}),
     "reFilExTL": frozenset({65535}),
+    "pmFstFilClTL": frozenset({65535}),
+    "pmFstFilExTL": frozenset({65535}),
+    "returnInFilExTL": frozenset({65535}),
 }
 
 
@@ -439,15 +459,20 @@ ERV_PROFILES: dict[str, dict] = {
         "extra_selects":    _DCERV_EXTRA_SELECTS,
     },
     "NEWDCERV": {
-        "run_mode_get_map": RUN_MODE_GET_MAP,
-        "run_mode_set_map": RUN_MODE_SET_MAP,
-        "air_volume_map":   AIR_VOLUME_MAP,
+        # FV-RZ09VD2 实机验证值域同 MidERV（runM 0/2/3/4、airVo 1/2/3），见上方常量注释。
+        "run_mode_get_map": NEWDCERV_RUN_MODE_GET_MAP,
+        "run_mode_set_map": NEWDCERV_RUN_MODE_SET_MAP,
+        "air_volume_map":   NEWDCERV_AIR_VOLUME_MAP,
         "has_run_mode":     True,
         "payload_builder":  build_newdcerv_payload,
         # App SET 请求会回传当前室外 PM2.5，控制时从 coordinator 状态复制。
         "copy_status_fields": ("oaPMC",),
         # 滤网周期等值域仍待实机确认，先不暴露错误的 DCERV 控件。
         "extra_selects":    [],
+        # NewDCERV SET bean 自带 nanoe 字段，实机 0/1 可写可读。
+        "has_nanoe":        True,
+        # 实时状态走 ADevGetStatusNewDCERV，室外温湿度从 MidERV 端点补。
+        "aux_sensor_keys":  NEWDCERV_AUX_SENSOR_KEYS,
     },
     "MIDERV": {
         "run_mode_get_map": MIDERV_RUN_MODE_GET_MAP,

@@ -26,6 +26,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [FreshAirPowerSwitch(coordinator, entry)]
     if profile.get("has_holiday", True):
         entities.append(FreshAirHolidaySwitch(coordinator, entry))
+    if profile.get("has_nanoe"):
+        entities.append(FreshAirNanoeSwitch(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -168,3 +170,39 @@ class FreshAirHolidaySwitch(_FreshAirSwitchBase):
 
     async def async_turn_off(self, **kwargs) -> None:
         await self._set_field("holM", 0)
+
+
+class FreshAirNanoeSwitch(_FreshAirSwitchBase):
+    """纳诺怡（nanoe）开关；目前只在 NewDCERV（FV-RZ09VD2）实机验证过 0/1 可写。"""
+
+    _attr_icon = "mdi:shimmer"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry)
+        device_id = entry.data[CONF_DEVICE_ID]
+        self._attr_name = f"{entry.title} 纳诺怡"
+        self._attr_unique_id = f"panasonic_{device_id}_nanoe"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, device_id)},
+            name=entry.title,
+            manufacturer="Panasonic",
+            model="DCERV",
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.data or {}
+        raw = data.get("nanoe")
+        if raw is None or raw == "":
+            return None
+        try:
+            v = int(raw)
+            return None if v == 255 else v == 1
+        except (TypeError, ValueError):
+            return None
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self._set_field("nanoe", 1)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self._set_field("nanoe", 0)
