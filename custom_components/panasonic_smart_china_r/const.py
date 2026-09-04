@@ -30,9 +30,11 @@ AUTH_EXPIRED_ERROR_CODES = {"3003", "3004", "4102"}
 # deviceId 中间段的 category 码
 CATEGORY_AC = "0900"
 CATEGORY_FRESH_AIR = {"0800", "0850"}  # 0850 = SmallERV 小型新风
+CATEGORY_FRIDGE = "0100"  # 冰箱
 
 DEVICE_KIND_AC = "ac"
 DEVICE_KIND_FRESH_AIR = "fresh_air"
+DEVICE_KIND_FRIDGE = "fridge"
 
 
 _BASE_URL = "https://app.psmartcloud.com/App/"
@@ -61,6 +63,10 @@ def get_dcerv_endpoints(dev_sub_type_id: str) -> tuple[str, str]:
     return _DCERV_ENDPOINT_MAP["DCERV"]
 
 
+# 冰箱端点
+FRIDGE_GET_URL = _BASE_URL + "FDevGetStatusInfo"
+FRIDGE_SET_URL = _BASE_URL + "FDevSetStatusInfo"
+
 def detect_device_kind(device_id: str) -> str | None:
     """Infer device kind from the category segment of deviceId (MAC_CATEGORY_SUFFIX)."""
     parts = device_id.split("_")
@@ -71,6 +77,8 @@ def detect_device_kind(device_id: str) -> str | None:
         return DEVICE_KIND_AC
     if cat in CATEGORY_FRESH_AIR:
         return DEVICE_KIND_FRESH_AIR
+    if cat == CATEGORY_FRIDGE:
+        return DEVICE_KIND_FRIDGE
     return None
 
 # 自定义风速常量

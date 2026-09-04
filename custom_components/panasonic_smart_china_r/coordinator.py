@@ -3,13 +3,15 @@
 sensor 与 select 两个平台都复用同一实例（按 entry.entry_id 存在 hass.data 里）。
 SSID 过期时先尝试静默重登一次，失败才抛 ConfigEntryAuthFailed 触发 reauth UI。
 """
-
+import asyncio
 import logging
+import random
 from datetime import timedelta
+from typing import Any, override
 
 import async_timeout
 from homeassistant.components.persistent_notification import async_create as pn_create
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -23,9 +25,8 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     LD5C_AUX_GET_URL,
-    get_dcerv_endpoints,
+    get_dcerv_endpoints, FRIDGE_GET_URL, FRIDGE_SET_URL,
 )
-from .exceptions import LoginFailed, ReloginCooldown
 from .devices.erv import (
     ERV_PROFILES,
     LIVE_STATUS_PROFILES,
@@ -33,6 +34,8 @@ from .devices.erv import (
     build_status_body,
     normalize_status,
 )
+from .devices.fridge import MAX_RETRIES as BRIDGE_MAX_RETRIES, refresh_ssid_headers, build_fridge_payload, build_set_body, build_headers as build_fridge_headers
+from .exceptions import LoginFailed, ReloginCooldown
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -241,3 +244,163 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return self.data or {}
 
         return status_all
+
+class FridgeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """拉取与控制冰箱状态（devSubTypeId=Fridge-15 / category=0100）。"""
+
+    def __init__(self, hass, entry):
+        interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"panasonic_fridge_{entry.data[CONF_DEVICE_ID]}",
+            update_interval=timedelta(seconds=interval),
+        )
+        self._entry = entry
+        self._usr_id = entry.data[CONF_USR_ID]
+        self._ssid = entry.data[CONF_SSID]
+        self._device_id = entry.data[CONF_DEVICE_ID]
+        self._req_id = 0
+
+    async def _fetch_live_status(self) -> dict[str, Any]:
+        """Fetch live fridge state via FDevGetStatusInfo."""
+        token = generate_device_token(self._device_id)
+        if token is None:
+            raise UpdateFailed("Cannot generate device token for fridge")
+
+        payload = {
+            "id": 1,
+            "usrId": self._usr_id,
+            "deviceId": self._device_id,
+            "token": token,
+        }
+        headers = build_fridge_headers(self._ssid)
+        session = async_get_clientsession(self.hass)
+        try:
+            async with asyncio.timeout(10):
+                resp = await session.post(
+                    FRIDGE_GET_URL, json=payload, headers=headers, ssl=False
+                )
+                return await resp.json()
+        except TimeoutError as err:
+            raise UpdateFailed("Fetch live fridge status timed out") from err
+
+    @override
+    async def _async_update_data(self) -> dict[str, Any]:
+        try:
+            data = await self._fetch_live_status()
+        except Exception as err:  # noqa: BLE001
+            raise UpdateFailed(f"Fridge fetch failed: {err}") from err
+
+        if data is None:
+            return self.data or {}
+
+        if response_looks_bad(data):
+            _LOGGER.warning(
+                "Fridge response looks bad (errorCode=%s); attempting silent re-login. Raw=%s",
+                data.get("errorCode") if isinstance(data, dict) else None,
+                data,
+            )
+            try:
+                self._ssid = await relogin_entry(self.hass, self._entry)
+            except ReloginCooldown as err:
+                pn_create(
+                    self.hass,
+                    (
+                        "松下智家账号疑似被其他设备（手机 App 等）登录踢掉。"
+                        "Home Assistant 已暂停轮询 10 分钟，避免跟手机抢占会话。\n\n"
+                        "若希望立即切回 HA：前往 **设置 → 设备与服务 → Panasonic Smart China**，"
+                        "点击集成右上角菜单 → **重新加载** 即可立即重登。"
+                    ),
+                    title="Panasonic Smart China 会话被抢占",
+                    notification_id=f"pms_session_stolen_{self._entry.entry_id}",
+                )
+                raise UpdateFailed(str(err)) from err
+            except LoginFailed as err:
+                raise ConfigEntryAuthFailed(str(err)) from err
+
+            try:
+                data = await self._fetch_live_status()
+            except Exception as err:  # noqa: BLE001
+                raise UpdateFailed(f"Fridge fetch (post-relogin) failed: {err}") from err
+
+            if data is None or response_looks_bad(data):
+                raise ConfigEntryAuthFailed(
+                    f"Still bad after re-login: errorCode={data.get('errorCode') if isinstance(data, dict) else None}"
+                )
+
+        results = data.get("results") if isinstance(data, dict) else None
+        if not isinstance(results, dict) or not results:
+            raise UpdateFailed(f"Fridge live response has no status results: {data!r}")
+        return results
+
+    async def _request_with_retry(
+            self, url: str, payload: dict[str, Any], headers: dict[str, str]
+    ) -> dict[str, Any]:
+        """带自动重试与 Token 自动续签的底层请求方法。"""
+        session = async_get_clientsession(self.hass)
+        err = ""
+        for attempt in range(BRIDGE_MAX_RETRIES):
+            try:
+                async with asyncio.timeout(10):
+                    resp = await session.post(
+                        url, json=payload, headers=headers, ssl=False
+                    )
+                    j = await resp.json()
+
+                err_obj = j.get("error") if isinstance(j, dict) else None
+                if err_obj:
+                    code = str(err_obj.get("code"))
+                    if code in {"3003", "3004", "4102"}:
+                        new_ssid = await relogin_entry(self.hass, self._entry)
+                        self._ssid = new_ssid
+                        refresh_ssid_headers(headers, new_ssid)
+                        continue
+                    raise HomeAssistantError(
+                        f"请求失败: {err_obj.get('message', err_obj)}"
+                    )
+                return j
+
+            except TimeoutError:
+                err = "请求超时"
+            except HomeAssistantError:
+                raise
+            except Exception as e:
+                err = str(e)
+
+            if attempt < BRIDGE_MAX_RETRIES - 1:
+                await asyncio.sleep(2**attempt + random.uniform(0, 0.5))
+
+        raise HomeAssistantError(f"请求失败（已重试{BRIDGE_MAX_RETRIES}次）: {err}")
+
+    async def async_set_fridge_field(self, new_val_dict: dict[str, Any]) -> None:
+        """统一控制冰箱属性接口（支持多字段批量下发）。"""
+        if not new_val_dict:
+            return
+
+        token = generate_device_token(self._device_id)
+        if token is None:
+            raise HomeAssistantError("无法生成设备 token")
+
+        headers = build_fridge_headers(self._ssid)
+        current_status = self.data or {}
+
+        params = build_fridge_payload(current_status, new_val_dict)
+
+        _LOGGER.debug(
+            "Fridge SET fields=%s (payload params keys=%s)",
+            new_val_dict,
+            sorted(params.keys()),
+        )
+
+        self._req_id += 1
+        body = build_set_body(
+            self._req_id, self._device_id, token, self._usr_id, params
+        )
+
+        set_resp = await self._request_with_retry(FRIDGE_SET_URL, body, headers)
+        _LOGGER.debug("Fridge SET response: %s", set_resp)
+
+        new_data = dict(self.data) if isinstance(self.data, dict) else {}
+        new_data.update(new_val_dict)
+        self.async_set_updated_data(new_data)

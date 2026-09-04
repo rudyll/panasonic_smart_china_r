@@ -13,10 +13,11 @@ from .const import (
     CONF_SSID,
     CONF_USR_ID,
     DEVICE_KIND_FRESH_AIR,
+    DEVICE_KIND_FRIDGE,
     DOMAIN,
     detect_device_kind,
 )
-from .coordinator import FreshAirCoordinator
+from .coordinator import FreshAirCoordinator, FridgeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,8 +28,13 @@ def _platforms_for_entry(entry: ConfigEntry) -> list[str]:
     kind = entry.data.get(CONF_DEVICE_KIND) or detect_device_kind(
         entry.data.get(CONF_DEVICE_ID, "")
     )
+
     if kind == DEVICE_KIND_FRESH_AIR:
         return ["sensor", "select", "switch"]
+
+    if kind == DEVICE_KIND_FRIDGE:
+        return ["sensor", "binary_sensor", "select", "switch"]
+
     return ["climate"]
 
 
@@ -122,6 +128,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if kind == DEVICE_KIND_FRESH_AIR:
         await _migrate_dev_sub_type_id(hass, entry)
         coordinator = FreshAirCoordinator(hass, entry)
+        await coordinator.async_config_entry_first_refresh()
+        hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # 冰箱：共享 Coordinator
+    if kind == DEVICE_KIND_FRIDGE:
+        coordinator = FridgeCoordinator(hass, entry)
         await coordinator.async_config_entry_first_refresh()
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
