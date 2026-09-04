@@ -54,6 +54,10 @@ SENSOR_SPECS: tuple[FreshAirSensorSpec, ...] = (
     FreshAirSensorSpec("saFilExTL","送风滤网剩余寿命", "sa_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("raFilExTL","回风滤网剩余寿命", "ra_filter_life",None,                          UnitOfTime.HOURS,                icon="mdi:air-filter"),
     FreshAirSensorSpec("resFilExTL","新风集尘滤网剩余寿命", "res_filter_life",None,                    UnitOfTime.HOURS,                icon="mdi:air-filter"),
+    # NewDCERV（FV-RZ09VD2）专用滤网倒计时字段，名称按松下 App 字段含义。
+    FreshAirSensorSpec("pmFstFilClTL",    "PM2.5初效滤网清洁倒计时", "newdcerv_pm_filter_clean",   None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("pmFstFilExTL",    "PM2.5初效滤网更换倒计时", "newdcerv_pm_filter_life",    None, UnitOfTime.HOURS, icon="mdi:air-filter"),
+    FreshAirSensorSpec("returnInFilExTL", "回风内滤网更换倒计时",    "newdcerv_return_filter_life",None, UnitOfTime.HOURS, icon="mdi:air-filter"),
     # SmallERV02 使用不同于其他机型的专用滤网倒计时字段。
     # unique_suffix 保持 v2.2.4 的值，避免更正名称后产生重复实体。
     FreshAirSensorSpec("filClTL",     SMALLERV02_FILTER_FIELD_LABELS["filClTL"],     "smallerv02_filter_clean",   None, UnitOfTime.HOURS, icon="mdi:air-filter"),

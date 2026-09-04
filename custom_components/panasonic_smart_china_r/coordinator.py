@@ -117,7 +117,7 @@ class FreshAirCoordinator(DataUpdateCoordinator):
             return await resp.json()
 
     async def _fetch_aux_sensors(self, keys) -> dict:
-        """Fetch the sensor values the live endpoint does not provide (LD5C)."""
+        """Fetch sensor values that the profile's live endpoint does not provide."""
         token = generate_device_token(self._device_id)
         if token is None:
             return {}

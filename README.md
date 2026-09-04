@@ -1,7 +1,7 @@
 # Panasonic Smart China R
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-2.2.5-blue.svg)]()
+[![version](https://img.shields.io/badge/version-2.2.6-blue.svg)]()
 
 Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**云端 API，支持中央空调和新风换气设备。
 
@@ -36,7 +36,7 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 | FV-25ZDP2C | LD6C | 0800 | 🟡 专用状态接口与风量已获用户验证 |
 | FY-25ZDP1C | LD5C | 0800 | ✅ 控制协议已确认并实机验证（[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 系列 | SmallERV-\* | 0850 | 🟡 `SMALLERV02`（FY-25ZM1C）已加入专用适配，待用户验证（[#5](https://github.com/rudyll/panasonic_smart_china_r/issues/5)） |
-| NewDCERV 系列 | NEWDCERV-\* | 0800 | 🟡 代码完整，征集测试（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
+| FV-RZ09VD2（壁挂） | NEWDCERV | 0800 | ✅ 实机验证：值域同 MidERV，见下方 NewDCERV 小节（[#6](https://github.com/rudyll/panasonic_smart_china_r/issues/6)） |
 
 #### MidERV（FV-RZ06VD1 等）
 
@@ -80,8 +80,13 @@ Home Assistant 自定义集成，对接**松下智能家电（中国大陆）**�
 
 #### NewDCERV
 
-- 运行模式与风量枚举沿用 DCERV（`runM` 48–53、`airVo` 0/1）
-- 使用 NewDCERV 独立控制 payload；滤网周期等设置待设备实测确认值域后开放
+- 实机：FV-RZ09VD2 壁挂式新风机（`devSubTypeId=NEWDCERV`，deviceId 尾段 `Aircle-01-04`），2026-09-04 用 `ADevSetStatusNewDCERV` 逐值写入、`ADevGetStatusNewDCERV` 读回验证
+- 运行模式：热交换 / 内循环 / 睡眠 / 自动ECO（`runM` 0/2/3/4，与 MidERV 同值域；写 1/5/6 设备保持原值不动作；写 3 睡眠时设备自动把风量降到 1）
+- 风量：低 / 中 / 高（`airVo` 1/2/3）
+- 纳诺怡开关（`nanoe` 0/1）
+- 实时状态走 `ADevGetStatusNewDCERV`；该端点里室外温湿度是占位值，集成再从 `ADevGetStatusMidERV` 补室外温湿度
+- 传感器：室外 PM2.5、室外温度、室外湿度、PM2.5 初效滤网清洁/更换倒计时、回风内滤网更换倒计时（`pmFstFilClTL` / `pmFstFilExTL` / `returnInFilExTL`，小时）；送风/回风温湿度、PM2.5、CO₂ 在该机型全是占位值，不建实体
+- 滤网周期等设置字段（`pmFstFilCl` / `pmFstFilEx` / `oaFilEx` / `returnInFilEx` / `InLoopFilEx`）值域未验证，暂不开放控件
 
 #### DCERV-03（FY-35ZJD2C 等）
 
@@ -193,7 +198,7 @@ token = sha512(f"{inner}_{suffix}")
 | LD6C 新风 | 0800 | 🟡 待设备验证 | FV-25ZDP2C（使用 LD6C 专用接口） |
 | LD5C 新风 | 0800 | ✅ 用户确认 | FY-25ZDP1C（使用官方 Web 页的 Info 端点，[#11](https://github.com/rudyll/panasonic_smart_china_r/issues/11)） |
 | SmallERV 小型新风 | 0850 | 🟡 `SMALLERV02` 专用适配待验证 | [issue #5](https://github.com/rudyll/panasonic_smart_china_r/issues/5) |
-| NewDCERV 新一代大型新风 | 0800 | 🟡 征集测试 | [issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
+| NewDCERV 新风 | 0800 | ✅ 实测 | FV-RZ09VD2 壁挂机（值域同 MidERV），[issue #6](https://github.com/rudyll/panasonic_smart_china_r/issues/6) |
 | 空气净化器（Aircle） | 0830 | 🔍 待开发 | [issue #3](https://github.com/rudyll/panasonic_smart_china_r/issues/3) |
 | 其他 0900 空调控制器 | 0900 | 🔍 征集数据 | [issue #7](https://github.com/rudyll/panasonic_smart_china_r/issues/7) |
 
